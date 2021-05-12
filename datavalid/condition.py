@@ -1,4 +1,3 @@
-from typing import List
 import operator
 import functools
 
@@ -27,8 +26,8 @@ class Condition(object):
             column: str or None = None,
             op: str or None = None,
             value: str or int or None = None,
-            together: List or None = None,
-            either_or: List or None = None) -> None:
+            together: list or None = None,
+            either_or: list or None = None) -> None:
         self._conds = None
         self._column = None
         if together is not None:

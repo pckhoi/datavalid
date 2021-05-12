@@ -1,6 +1,5 @@
 from unittest import TestCase
 from dataclasses import dataclass, asdict, field
-from typing import List
 
 import pandas as pd
 from pandas.testing import assert_series_equal, assert_frame_equal
@@ -16,8 +15,8 @@ class ConditionTestCase(TestCase):
             column: str or None = field(default=None)
             op: str or None = field(default=None)
             value: str or int or None = field(default=None)
-            together: List or None = field(default=None)
-            either_or: List or None = field(default=None)
+            together: list or None = field(default=None)
+            either_or: list or None = field(default=None)
 
         df = pd.DataFrame([
             ['john', 'doe', 23],

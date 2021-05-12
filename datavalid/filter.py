@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, List
 
 import pandas as pd
 
@@ -7,15 +7,12 @@ from .group_by import GroupBy
 
 
 class Filter(object):
-    def __init__(self, where: dict = None, group_by: str or list = None) -> None:
+    def __init__(self, where: dict = None, group_by: str or List[str] or None = None) -> None:
         if where is not None:
             self._condition = Condition(**where)
         else:
             self._condition = Condition()   # no-op condition
-        if group_by is not None:
-            self._group_by = GroupBy(group_by)
-        else:
-            self._group_by = GroupBy()
+        self._group_by = GroupBy(group_by)
 
     def filter(self, df: pd.DataFrame) -> Iterator[pd.DataFrame]:
         df = self._condition.apply(df)
