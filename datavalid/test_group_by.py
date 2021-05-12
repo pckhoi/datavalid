@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import pandas as pd
 
 from datavalid.testing import BaseTestCase
