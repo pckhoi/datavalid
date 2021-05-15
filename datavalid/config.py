@@ -8,9 +8,10 @@ from .spinner import Spinner
 
 
 class Config(object):
-    def __init__(self, datadir: pathlib.Path, files: dict) -> None:
+    def __init__(self, datadir: pathlib.Path, files: dict, no_spinner: bool = False) -> None:
         self._datadir = datadir
         self._files = dict()
+        self._no_spinner = no_spinner
         for name, objs in files.items():
             self._files[name] = []
             for obj in objs:
@@ -22,8 +23,11 @@ class Config(object):
             filepath = self._datadir / name
             df = pd.read_csv(filepath)
             for task in tasks:
-                with Spinner(task.name, indent=2):
+                if self._no_spinner:
                     succeed = task.run(df)
+                else:
+                    with Spinner(task.name, indent=2):
+                        succeed = task.run(df)
                 if succeed:
                     print("  %s %s" % (colored("✓", "green"), task.name))
                 else:
