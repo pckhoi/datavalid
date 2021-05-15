@@ -28,6 +28,6 @@ class Config(object):
                     print("  %s %s" % (colored("✓", "green"), task.name))
                 else:
                     print("  %s %s" % (colored("✕", "red"), task.name))
-                    task.print_error()
+                    print(' '*4+task.err_msg.replace('\n', '\n    '))
                     return
         print("All good!")

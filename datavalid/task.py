@@ -1,28 +1,34 @@
 import pandas as pd
 
-from .checks import UniqueCheck, EmptyCheck, NoConsecutiveDateCheck
+from .checkers import NoMoreThanOnceAMonthChecker, UniqueChecker, EmptyChecker, NoConsecutiveDateChecker
 from .filter import Filter
 
 
 class Task(object):
     def __init__(
-            self, name: str, unique: list = None, empty: dict = None, no_consecutive_date: dict = None,
-            where: dict = None, group_by: dict or str = None) -> None:
+        self, name: str, where: dict or None = None, group_by: str or None = None,
+        unique: str or list[str] or None = None, empty: dict or None = None,
+        no_consecutive_date: dict or None = None, no_more_than_once_a_month: dict or None = None
+    ) -> None:
         self.name = name
-        if unique is not None:
-            self._check = UniqueCheck(unique)
-        elif empty is not None:
-            self._check = EmptyCheck(empty)
-        elif no_consecutive_date is not None:
-            self._check = NoConsecutiveDateCheck(no_consecutive_date)
         self._filter = Filter(where, group_by)
+        if unique is not None:
+            self._checker = UniqueChecker(unique)
+        if empty is not None:
+            self._checker = EmptyChecker(**empty)
+        if no_consecutive_date is not None:
+            self._checker = NoConsecutiveDateChecker(**no_consecutive_date)
+        if no_more_than_once_a_month is not None:
+            self._checker = NoMoreThanOnceAMonthChecker(
+                **no_more_than_once_a_month)
 
     def run(self, df: pd.DataFrame) -> bool:
         for sub_df in self._filter.filter(df):
-            succeed = self._check.check(sub_df)
+            succeed = self._checker.check(sub_df)
             if not succeed:
                 return False
         return True
 
-    def print_error(self) -> None:
-        self._check.print_error()
+    @property
+    def err_msg(self) -> str:
+        return self._checker.err_msg

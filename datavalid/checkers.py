@@ -1,0 +1,85 @@
+import datetime
+
+import pandas as pd
+
+from .condition import Condition
+from .date import DateParser
+
+
+class UniqueChecker(object):
+    def __init__(self, columns: str or list[str]) -> None:
+        if type(columns) is str:
+            self._columns = [columns]
+        else:
+            self._columns = columns
+
+    def check(self, df: pd.DataFrame) -> bool:
+        succeed = not df.duplicated(subset=self._columns).any()
+        if not succeed:
+            self.err_msg = '\n'.join([
+                'Table contains duplicates',
+                df[df.duplicated(subset=self._columns, keep=False)]
+                .to_string()
+            ])
+        return succeed
+
+
+class EmptyChecker(object):
+    def __init__(self, **kwargs) -> None:
+        self._condition = Condition(**kwargs)
+
+    def check(self, df: pd.DataFrame) -> bool:
+        succeed = not self._condition.bool_index(df).any()
+        if not succeed:
+            df = self._condition.apply(df)
+            self.err_msg = '\n'.join([
+                'There are %d such rows' % df.shape[0],
+                df.to_string()
+            ])
+        return succeed
+
+
+class NoConsecutiveDateChecker(object):
+    def __init__(self, date_from: dict) -> None:
+        self._date_parser = DateParser(**date_from)
+
+    def check(self, df: pd.DataFrame) -> bool:
+        date_series = self._date_parser.parse(df)
+        prev_date = None
+        prev_ind = None
+        succeed = True
+        for ind, date in date_series.sort_values().items():
+            if prev_date is None:
+                prev_date = date
+                prev_ind = ind
+            elif prev_date == date - datetime.timedelta(days=1):
+                succeed = False
+                break
+        if not succeed:
+            df = df.loc[[prev_ind, ind]]
+            self.err_msg = '\n'.join([
+                'Consecutive dates detected',
+                df.to_string()
+            ])
+        return succeed
+
+
+class NoMoreThanOnceAMonthChecker(object):
+    def __init__(self, date_from: dict) -> None:
+        self._date_parser = DateParser(**date_from)
+
+    def check(self, df: pd.DataFrame) -> bool:
+        date_series = self._date_parser.parse(df)
+        df = df.copy(True)
+        year_month = date_series.dt.strftime("%b, %Y")
+        succeed = True
+        for val in year_month.unique():
+            subdf = df.loc[year_month == val]
+            if subdf.shape[0] > 1:
+                succeed = False
+                self.err_msg = '\n'.join([
+                    'More than 1 row detected in the month %s' % val,
+                    subdf.to_string()
+                ])
+                break
+        return succeed
