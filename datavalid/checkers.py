@@ -54,6 +54,8 @@ class NoConsecutiveDateChecker(object):
             self._date_parser = DateParser(**date_from)
         except BadConfigError as e:
             raise BadConfigError(['date_from']+e.path, e.msg)
+        except TypeError as e:
+            raise BadConfigError(['date_from'], str(e))
 
     def check(self, df: pd.DataFrame) -> bool:
         date_series = self._date_parser.parse(df)
@@ -86,6 +88,8 @@ class NoMoreThanOnceAMonthChecker(object):
             self._date_parser = DateParser(**date_from)
         except BadConfigError as e:
             raise BadConfigError(['date_from']+e.path, e.msg)
+        except TypeError as e:
+            raise BadConfigError(['date_from'], str(e))
 
     def check(self, df: pd.DataFrame) -> bool:
         date_series = self._date_parser.parse(df)

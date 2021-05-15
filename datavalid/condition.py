@@ -40,6 +40,8 @@ class Condition(object):
                     self._conds.append(Condition(**obj))
                 except BadConfigError as e:
                     raise BadConfigError(['and', i]+e.path, e.msg)
+                except TypeError as e:
+                    raise BadConfigError(['and', i], str(e))
             self._logic_op = logical_operators['AND']
         elif 'or' in kwargs:
             if type(kwargs['or']) is not list:
@@ -50,6 +52,8 @@ class Condition(object):
                     self._conds.append(Condition(**obj))
                 except BadConfigError as e:
                     raise BadConfigError(['or', i]+e.path, e.msg)
+                except TypeError as e:
+                    raise BadConfigError(['or', i], str(e))
             self._logic_op = logical_operators['OR']
         else:
             self._column = column

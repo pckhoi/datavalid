@@ -28,7 +28,7 @@ class Spinner:
             sys.stdout.write(" %s" % self._text)
             sys.stdout.flush()
             time.sleep(self.delay)
-            sys.stdout.write('\b')
+            sys.stdout.write('\r%s\r' % ' '*(self._indent+len(self._text)+2))
             sys.stdout.flush()
 
     def __enter__(self):

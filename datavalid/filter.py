@@ -16,12 +16,16 @@ class Filter(object):
                 self._condition = Condition(**where)
             except BadConfigError as e:
                 raise BadConfigError(['where']+e.path, e.msg)
+            except TypeError as e:
+                raise BadConfigError(['where'], str(e))
         else:
             self._condition = Condition()   # no-op condition
         try:
             self._group_by = GroupBy(group_by)
         except BadConfigError as e:
             raise BadConfigError(['group_by']+e.path, e.msg)
+        except TypeError as e:
+            raise BadConfigError(['group_by'], str(e))
 
     def filter(self, df: pd.DataFrame) -> Iterator[pd.DataFrame]:
         df = self._condition.apply(df)

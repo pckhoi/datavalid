@@ -1,5 +1,4 @@
 import pathlib
-import sys
 
 import pandas as pd
 from termcolor import colored
@@ -29,16 +28,18 @@ class Config(object):
             for i, task in enumerate(tasks):
                 try:
                     self._files[name].append(Task(**task))
-                except BadConfigError as e:
+                except (BadConfigError, TypeError) as e:
                     raise BadConfigError(
                         [],
-                        'error creating task %d for file %s:\n  %s' % (i, name, str(e).replace('\n', '\n  ')))
+                        'error creating task %d for file %s:\n  %s' % (
+                            i, name, str(e).replace('\n', '\n  '))
+                    )
 
     def run(self) -> int:
         for name, tasks in self._files.items():
-            print("File %s" % name)
+            print("Validating file %s" % name)
             filepath = self._datadir / name
-            df = pd.read_csv(filepath)
+            df = pd.read_csv(filepath, low_memory=False)
             for task in tasks:
                 if self._no_spinner:
                     succeed = task.run(df)

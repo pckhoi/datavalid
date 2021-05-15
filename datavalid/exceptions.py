@@ -18,4 +18,4 @@ class BadConfigError(Exception):
                 sl.append('."%s"' % key)
             else:
                 sl.append('.%s' % key)
-        return 'error at %s: %s' % (sl, self.msg)
+        return 'error at %s: %s' % (''.join(sl), self.msg)
