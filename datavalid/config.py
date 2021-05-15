@@ -9,10 +9,15 @@ from .exceptions import BadConfigError
 
 
 class Config(object):
-    def __init__(self, datadir: pathlib.Path, files: dict or None = None, no_spinner: bool = False) -> None:
+    def __init__(self, datadir: pathlib.Path, files: dict or None = None, save_bad_rows_to: str or None = None, no_spinner: bool = False) -> None:
         self._datadir = datadir
         self._files = dict()
         self._no_spinner = no_spinner
+        if save_bad_rows_to is not None:
+            if type(save_bad_rows_to) is not str:
+                raise BadConfigError(
+                    [], 'key "save_bad_rows_to" should be a file path relative to data dir')
+        self._save_bad_rows_to = save_bad_rows_to
         if files is None:
             raise BadConfigError([], 'key "files" should appear at top level')
         if type(files) != dict:
@@ -37,8 +42,8 @@ class Config(object):
 
     def run(self) -> int:
         for name, tasks in self._files.items():
-            print("Validating file %s" % name)
             filepath = self._datadir / name
+            print("Validating file %s" % filepath)
             df = pd.read_csv(filepath, low_memory=False)
             for task in tasks:
                 if self._no_spinner:
@@ -51,6 +56,12 @@ class Config(object):
                 else:
                     print("  %s %s" % (colored("✕", "red"), task.name))
                     print(' '*4+task.err_msg.replace('\n', '\n    '))
+                    if self._save_bad_rows_to is not None:
+                        rows_path = self._datadir / self._save_bad_rows_to
+                        task.df.to_csv(rows_path, index=False)
+                        print('    Saved bad rows to %s' % rows_path)
+                    else:
+                        print(' '*4+task.df.to_string().replace('\n', '\n    '))
                     return 1
         print("All good!")
         return 0

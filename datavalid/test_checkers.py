@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from datavalid.checkers import UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, NoMoreThanOnceAMonthChecker
 
@@ -18,12 +19,11 @@ class UniqueCheckTestCase(TestCase):
 
         checker = UniqueChecker('last')
         self.assertFalse(checker.check(df))
-        self.assertEqual(checker.err_msg, '\n'.join([
-            'Table contains duplicates',
-            '  first   last  age',
-            '1  jean  smith   43',
-            '2  jane  smith   30',
-        ]))
+        self.assertEqual(checker.err_msg, 'Table contains duplicates')
+        assert_frame_equal(checker.df, pd.DataFrame([
+            ['jean', 'smith', 43],
+            ['jane', 'smith', 30]
+        ], index=[1, 2], columns=columns))
 
 
 class EmptyCheckTestCase(TestCase):
@@ -40,11 +40,10 @@ class EmptyCheckTestCase(TestCase):
 
         checker = EmptyChecker(column='first', op='equal', value='john')
         self.assertFalse(checker.check(df))
-        self.assertEqual(checker.err_msg, '\n'.join([
-            'There are 1 such rows',
-            '  first last  age',
-            '0  john  doe   23'
-        ]))
+        self.assertEqual(checker.err_msg, 'There are 1 such rows')
+        assert_frame_equal(checker.df, pd.DataFrame([
+            ['john', 'doe', 23],
+        ], columns=columns))
 
 
 class NoConsecutiveDateCheckTestCase(TestCase):
@@ -67,12 +66,11 @@ class NoConsecutiveDateCheckTestCase(TestCase):
             ['officer_join', 2000, 1, 3],
             ['officer_left', 2010, 9, 3],
         ], columns=columns)))
-        self.assertEqual(checker.err_msg, '\n'.join([
-            'Consecutive dates detected',
-            '          event  event_year  event_month  event_day',
-            '1  officer_join        2000            1          3',
-            '0     promotion        2000            1          4',
-        ]))
+        self.assertEqual(checker.err_msg, 'Consecutive dates detected')
+        assert_frame_equal(checker.df, pd.DataFrame([
+            ['officer_join', 2000, 1, 3],
+            ['promotion', 2000, 1, 4],
+        ], index=[1, 0], columns=columns))
 
 
 class NoMoreThanOnceAMonthCheckerTestCase(TestCase):
@@ -93,9 +91,9 @@ class NoMoreThanOnceAMonthCheckerTestCase(TestCase):
             ['officer_join', 2000, 1, 3],
             ['officer_left', 2010, 9, 3],
         ], columns=columns)))
-        self.assertEqual(checker.err_msg, '\n'.join([
-            'More than 1 row detected in the month Jan, 2000',
-            '          event  event_year  event_month  event_day',
-            '0     promotion        2000            1          4',
-            '1  officer_join        2000            1          3',
-        ]))
+        self.assertEqual(
+            checker.err_msg, 'More than 1 row detected in the month Jan, 2000')
+        assert_frame_equal(checker.df, pd.DataFrame([
+            ['promotion', 2000, 1, 4],
+            ['officer_join', 2000, 1, 3],
+        ], columns=columns))

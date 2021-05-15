@@ -7,11 +7,14 @@ from pathlib import Path
 from io import StringIO
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from datavalid.config import Config
 
 
 class ConfigTestCase(TestCase):
+    maxDiff = None
+
     def test_run(self):
         with NamedTemporaryFile(delete=False) as f:
             pd.DataFrame([
@@ -54,9 +57,9 @@ class ConfigTestCase(TestCase):
             conf.run()
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'File ' + str(fp_1),
+            'Validating file ' + str(fp_1),
             '  [32m✓[0m the smiths should have unique first name',
-            'File ' + str(fp_2),
+            'Validating file ' + str(fp_2),
             '  [31m✕[0m no more than one event a month',
             '    More than 1 row detected in the month Jan, 2000',
             '              event  event_year  event_month  event_day',
@@ -64,6 +67,47 @@ class ConfigTestCase(TestCase):
             '    1  officer_join        2000            1          3',
             '',
         ]))
+
+        os.remove(fp_1)
+        os.remove(fp_2)
+
+    def test_save_bad_rows_to(self):
+        with NamedTemporaryFile(delete=False) as f:
+            pd.DataFrame([
+                ['john', 'doe', 23],
+                ['jean', 'smith', 43],
+                ['jane', 'smith', 30]
+            ], columns=['first', 'last', 'age']).to_csv(f, index=False)
+            fp_1 = Path(f.name)
+
+        with NamedTemporaryFile(delete=False) as f:
+            fp_2 = Path(f.name)
+
+        conf = Config(fp_1.parent, files={
+            str(fp_1): [
+                {
+                    'name': 'last name should be unique',
+                    'unique': 'last'
+                }
+            ]
+        }, save_bad_rows_to=str(fp_2), no_spinner=True)
+
+        buf = StringIO()
+        with redirect_stdout(buf):
+            conf.run()
+            sys.stdout.flush()
+        self.assertEqual(buf.getvalue(), '\n'.join([
+            'Validating file ' + str(fp_1),
+            '  [31m✕[0m last name should be unique',
+            '    Table contains duplicates',
+            '    Saved bad rows to ' + str(fp_2),
+            '',
+        ]))
+
+        assert_frame_equal(pd.read_csv(fp_2), pd.DataFrame([
+            ['jean', 'smith', 43],
+            ['jane', 'smith', 30]
+        ], columns=['first', 'last', 'age']))
 
         os.remove(fp_1)
         os.remove(fp_2)

@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from datavalid.task import Task
 
@@ -17,12 +18,11 @@ class TaskTestCase(TestCase):
         task = Task('everyone should be older than 25', empty={
                     'column': 'age', 'op': 'greater_than', 'value': 25})
         self.assertFalse(task.run(df))
-        self.assertEqual(task.err_msg, '\n'.join([
-            'There are 2 such rows',
-            '  first   last  age',
-            '0  jean  smith   43',
-            '1  jane  smith   30',
-        ]))
+        self.assertEqual(task.err_msg, 'There are 2 such rows')
+        assert_frame_equal(task.df, pd.DataFrame([
+            ['jean', 'smith', 43],
+            ['jane', 'smith', 30]
+        ], columns=columns))
 
         task = Task(
             'the smiths should have unique first name',

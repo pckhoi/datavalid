@@ -21,11 +21,8 @@ class UniqueChecker(object):
     def check(self, df: pd.DataFrame) -> bool:
         succeed = not df.duplicated(subset=self._columns).any()
         if not succeed:
-            self.err_msg = '\n'.join([
-                'Table contains duplicates',
-                df[df.duplicated(subset=self._columns, keep=False)]
-                .to_string()
-            ])
+            self.err_msg = 'Table contains duplicates'
+            self.df = df[df.duplicated(subset=self._columns, keep=False)]
         return succeed
 
 
@@ -37,10 +34,8 @@ class EmptyChecker(object):
         succeed = not self._condition.bool_index(df).any()
         if not succeed:
             df = self._condition.apply(df)
-            self.err_msg = '\n'.join([
-                'There are %d such rows' % df.shape[0],
-                df.to_string()
-            ])
+            self.err_msg = 'There are %d such rows' % df.shape[0]
+            self.df = df
         return succeed
 
 
@@ -71,10 +66,8 @@ class NoConsecutiveDateChecker(object):
                 break
         if not succeed:
             df = df.loc[[prev_ind, ind]]
-            self.err_msg = '\n'.join([
-                'Consecutive dates detected',
-                df.to_string()
-            ])
+            self.err_msg = 'Consecutive dates detected'
+            self.df = df
         return succeed
 
 
@@ -100,9 +93,7 @@ class NoMoreThanOnceAMonthChecker(object):
             subdf = df.loc[year_month == val]
             if subdf.shape[0] > 1:
                 succeed = False
-                self.err_msg = '\n'.join([
-                    'More than 1 row detected in the month %s' % val,
-                    subdf.to_string()
-                ])
+                self.err_msg = 'More than 1 row detected in the month %s' % val
+                self.df = subdf
                 break
         return succeed

@@ -64,3 +64,7 @@ class Task(object):
     @property
     def err_msg(self) -> str:
         return self._checker.err_msg
+
+    @property
+    def df(self) -> pd.DataFrame:
+        return self._checker.df
