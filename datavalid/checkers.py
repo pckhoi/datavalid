@@ -4,14 +4,19 @@ import pandas as pd
 
 from .condition import Condition
 from .date import DateParser
+from .exceptions import BadConfigError
 
 
 class UniqueChecker(object):
     def __init__(self, columns: str or list[str]) -> None:
         if type(columns) is str:
             self._columns = [columns]
-        else:
+        elif type(columns) is list:
             self._columns = columns
+        else:
+            raise BadConfigError(
+                [], 'should be a column name or a list of column names'
+            )
 
     def check(self, df: pd.DataFrame) -> bool:
         succeed = not df.duplicated(subset=self._columns).any()
@@ -40,8 +45,15 @@ class EmptyChecker(object):
 
 
 class NoConsecutiveDateChecker(object):
-    def __init__(self, date_from: dict) -> None:
-        self._date_parser = DateParser(**date_from)
+    def __init__(self, date_from: dict or None = None) -> None:
+        if date_from is None:
+            raise BadConfigError([], 'should contain key "date_from"')
+        if type(date_from) is not dict:
+            raise BadConfigError([], '"date_from" should be a dict')
+        try:
+            self._date_parser = DateParser(**date_from)
+        except BadConfigError as e:
+            raise BadConfigError(['date_from']+e.path, e.msg)
 
     def check(self, df: pd.DataFrame) -> bool:
         date_series = self._date_parser.parse(df)
@@ -65,8 +77,15 @@ class NoConsecutiveDateChecker(object):
 
 
 class NoMoreThanOnceAMonthChecker(object):
-    def __init__(self, date_from: dict) -> None:
-        self._date_parser = DateParser(**date_from)
+    def __init__(self, date_from: dict or None = None) -> None:
+        if date_from is None:
+            raise BadConfigError([], 'should contain key "date_from"')
+        if type(date_from) is not dict:
+            raise BadConfigError([], '"date_from" should be a dict')
+        try:
+            self._date_parser = DateParser(**date_from)
+        except BadConfigError as e:
+            raise BadConfigError(['date_from']+e.path, e.msg)
 
     def check(self, df: pd.DataFrame) -> bool:
         date_series = self._date_parser.parse(df)

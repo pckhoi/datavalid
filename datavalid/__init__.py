@@ -5,6 +5,7 @@ import sys
 import yaml
 
 from .config import Config
+from .exceptions import BadConfigError
 
 __all__ = ["Config"]
 
@@ -24,5 +25,10 @@ if __name__ == '__main__':
         sys.exit("%s does not exist" % conf_file)
     with conf_file.open() as f:
         obj = yaml.load(f.read())
-    conf = Config(datadir, **obj)
-    conf.run()
+    try:
+        conf = Config(datadir, **obj)
+    except BadConfigError as e:
+        print("Error parsing config file %s:\n  %s" %
+              (str(conf_file), e.args[0].replace('\n', '\n  ')))
+        sys.exit(1)
+    sys.exit(conf.run())

@@ -4,15 +4,24 @@ import pandas as pd
 
 from .condition import Condition
 from .group_by import GroupBy
+from .exceptions import BadConfigError
 
 
 class Filter(object):
     def __init__(self, where: dict = None, group_by: str or List[str] or None = None) -> None:
         if where is not None:
-            self._condition = Condition(**where)
+            if type(where) is not dict:
+                raise BadConfigError(['where'], 'should be a dict')
+            try:
+                self._condition = Condition(**where)
+            except BadConfigError as e:
+                raise BadConfigError(['where']+e.path, e.msg)
         else:
             self._condition = Condition()   # no-op condition
-        self._group_by = GroupBy(group_by)
+        try:
+            self._group_by = GroupBy(group_by)
+        except BadConfigError as e:
+            raise BadConfigError(['group_by']+e.path, e.msg)
 
     def filter(self, df: pd.DataFrame) -> Iterator[pd.DataFrame]:
         df = self._condition.apply(df)

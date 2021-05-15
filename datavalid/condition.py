@@ -3,6 +3,8 @@ import functools
 
 import pandas as pd
 
+from .exceptions import BadConfigError
+
 
 logical_operators = {
     'AND': operator.and_,
@@ -26,20 +28,42 @@ class Condition(object):
             column: str or None = None,
             op: str or None = None,
             value: str or int or None = None,
-            together: list or None = None,
-            either_or: list or None = None) -> None:
+            **kwargs) -> None:
         self._conds = None
         self._column = None
-        if together is not None:
-            self._conds = [Condition(**obj) for obj in together]
+        if 'and' in kwargs:
+            if type(kwargs['and']) is not list:
+                raise BadConfigError(['and'], 'should be a list')
+            self._conds = []
+            for i, obj in enumerate(kwargs['and']):
+                try:
+                    self._conds.append(Condition(**obj))
+                except BadConfigError as e:
+                    raise BadConfigError(['and', i]+e.path, e.msg)
             self._logic_op = logical_operators['AND']
-        elif either_or is not None:
-            self._conds = [Condition(**obj) for obj in either_or]
+        elif 'or' in kwargs:
+            if type(kwargs['or']) is not list:
+                raise BadConfigError(['or'], 'should be a list')
+            self._conds = []
+            for i, obj in enumerate(kwargs['or']):
+                try:
+                    self._conds.append(Condition(**obj))
+                except BadConfigError as e:
+                    raise BadConfigError(['or', i]+e.path, e.msg)
             self._logic_op = logical_operators['OR']
-        elif column is not None:
+        else:
             self._column = column
-            self._op = compare_opeartors[op.upper()]
-            self._value = value
+            if self._column is not None:
+                if op is None:
+                    raise BadConfigError(
+                        [], '"op" is not defined. Possible values are "equal", "not_equal", "greater_than", "less_than", "greater_equal", "less_equal".'
+                    )
+                self._op = compare_opeartors[op.upper()]
+                if value is None:
+                    raise BadConfigError(
+                        [], '"value" is not defined.'
+                    )
+                self._value = value
 
     def bool_index(self, df: pd.DataFrame) -> pd.Series:
         if self._conds is not None:
