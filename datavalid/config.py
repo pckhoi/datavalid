@@ -9,7 +9,41 @@ from .exceptions import BadConfigError
 
 
 class Config(object):
-    def __init__(self, datadir: pathlib.Path, files: dict or None = None, save_bad_rows_to: str or None = None, no_spinner: bool = False) -> None:
+    """Entry point of datavalid
+
+    Config and all of its child objects are designed to be instantiated from
+    a dictionary object read straight from a YAML file.
+    """
+
+    def __init__(
+            self,
+            datadir: pathlib.Path,
+            files: dict or None = None,
+            save_bad_rows_to: str or None = None,
+            no_spinner: bool = False) -> None:
+        """Creates new instance of Config.
+
+        Args:
+            datadir (pathlib.Path):
+                directory path which contain all data. All file paths in `files` will
+                be interpreted based on this directory.
+            files (dict):
+                A dictionary each key is a path to data file (must be in CSV format),
+                each value is a dictionary that can be unpacked as keyword arguments to
+                create `Task` objects.
+            save_bad_rows_to (str):
+                A path point to where offending rows should be saved. If this is not
+                specified then the rows will just be output to screen
+            no_spinner (bool):
+                If set to True then don't show spinner on terminal when processing.
+                This is mostly useful during unit tests.
+
+        Raises:
+            BadConfigError: There's a problem with passed-in arguments
+
+        Returns:
+            no value
+        """
         self._datadir = datadir
         self._files = dict()
         self._no_spinner = no_spinner
@@ -41,6 +75,11 @@ class Config(object):
                     )
 
     def run(self) -> int:
+        """Run all validation tasks and print result to terminal.
+
+        Returns:
+            The exit code for the program.
+        """
         for name, tasks in self._files.items():
             filepath = self._datadir / name
             print("Validating file %s" % filepath)

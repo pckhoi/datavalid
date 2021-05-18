@@ -3,7 +3,7 @@ from unittest import TestCase
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from datavalid.checkers import UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, NoMoreThanOnceAMonthChecker
+from datavalid.checkers import UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, NoMoreThanOncePer30DaysChecker
 
 
 class UniqueCheckTestCase(TestCase):
@@ -73,11 +73,11 @@ class NoConsecutiveDateCheckTestCase(TestCase):
         ], index=[1, 0], columns=columns))
 
 
-class NoMoreThanOnceAMonthCheckerTestCase(TestCase):
+class NoMoreThanOncePer30DaysCheckerTestCase(TestCase):
     def test_check(self):
         columns = ['event', 'event_year', 'event_month', 'event_day']
 
-        checker = NoMoreThanOnceAMonthChecker(date_from={
+        checker = NoMoreThanOncePer30DaysChecker(date_from={
             'year_column': 'event_year', 'month_column': 'event_month', 'day_column': 'event_day'
         })
         self.assertTrue(checker.check(pd.DataFrame([
@@ -89,11 +89,13 @@ class NoMoreThanOnceAMonthCheckerTestCase(TestCase):
         self.assertFalse(checker.check(pd.DataFrame([
             ['promotion', 2000, 1, 4],
             ['officer_join', 2000, 1, 3],
+            ['officer_join', 1999, 12, 23],
             ['officer_left', 2010, 9, 3],
         ], columns=columns)))
         self.assertEqual(
-            checker.err_msg, 'More than 1 row detected in the month Jan, 2000')
+            checker.err_msg, '3 rows detected occur too close together')
         assert_frame_equal(checker.df, pd.DataFrame([
-            ['promotion', 2000, 1, 4],
+            ['officer_join', 1999, 12, 23],
             ['officer_join', 2000, 1, 3],
-        ], columns=columns))
+            ['promotion', 2000, 1, 4],
+        ], index=[2, 1, 0], columns=columns))

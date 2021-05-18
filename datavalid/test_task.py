@@ -34,7 +34,7 @@ class TaskTestCase(TestCase):
         task = Task(
             'officer should not have left dates too close together',
             group_by='uid',
-            no_more_than_once_a_month={'date_from': {
+            no_more_than_once_per_30_days={'date_from': {
                 'year_column': 'year', 'month_column': 'month', 'day_column': 'day'
             }}
         )

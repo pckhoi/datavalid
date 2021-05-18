@@ -43,7 +43,7 @@ class ConfigTestCase(TestCase):
             str(fp_2): [
                 {
                     'name': 'no more than one event a month',
-                    'no_more_than_once_a_month': {
+                    'no_more_than_once_per_30_days': {
                         'date_from': {
                             'year_column': 'event_year', 'month_column': 'event_month', 'day_column': 'event_day'
                         }
@@ -61,10 +61,10 @@ class ConfigTestCase(TestCase):
             '  [32m✓[0m the smiths should have unique first name',
             'Validating file ' + str(fp_2),
             '  [31m✕[0m no more than one event a month',
-            '    More than 1 row detected in the month Jan, 2000',
+            '    2 rows detected occur too close together',
             '              event  event_year  event_month  event_day',
-            '    0     promotion        2000            1          4',
             '    1  officer_join        2000            1          3',
+            '    0     promotion        2000            1          4',
             '',
         ]))
 

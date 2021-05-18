@@ -23,12 +23,48 @@ compare_opeartors = {
 
 
 class Condition(object):
+    """One or more conditions to filter a table with
+    """
+
     def __init__(
             self,
             column: str or None = None,
             op: str or None = None,
             value: str or int or None = None,
             **kwargs) -> None:
+        """Creates new instance of Condition.
+
+        One can create a condition with the following argument combinations:
+        - `column`, `op`, and `value`
+        - `and`
+        - `or`
+
+        `and` and `or` are keywords in Python so they must be suplied by unpacking
+        a dictionary.
+
+        Args:
+            column (str): column name
+            op (str): comparison operator to use. Possible values are
+                - equal
+                - not_equal
+                - greater_than
+                - less_than
+                - greater_equal
+                - less_equal
+            value (str or int): the value to compare with
+            and (list[dict]):
+                list of kwargs each will be passed down to a child Condition object.
+                The child conditions will be and-ed together.
+            or (list[dict]):
+                list of kwargs each will be passed down to a child Condition object.
+                The child conditions will be or-ed together.
+
+        Raises:
+            BadConfigError: There's a problem with passed-in arguments
+
+        Returns:
+            no value
+        """
         self._conds = None
         self._column = None
         if 'and' in kwargs:
@@ -70,6 +106,14 @@ class Condition(object):
                 self._value = value
 
     def bool_index(self, df: pd.DataFrame) -> pd.Series:
+        """Creates a boolean series by applying the condition to the provided data.
+
+        Args:
+            df (pd.DataFrame): The data to filter on
+
+        Returns:
+            A boolean series that can be used to filter or further combined
+        """
         if self._conds is not None:
             bool_series = [
                 cond.bool_index(df) for cond in self._conds
@@ -80,4 +124,12 @@ class Condition(object):
         return pd.Series([True]*df.shape[0], index=df.index)
 
     def apply(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Filter data with the condition.
+
+        Args:
+            df (pd.DataFrame): The data to filter on
+
+        Returns:
+            The filterd data
+        """
         return df.loc[self.bool_index].reset_index(drop=True)

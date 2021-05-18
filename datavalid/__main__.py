@@ -7,7 +7,8 @@ import yaml
 from .config import Config
 from .exceptions import BadConfigError
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    prog='datavalid', description='validate CSV files')
 parser.add_argument(
     "--dir", help="directory that contain datavalid.yml", type=pathlib.Path)
 args = parser.parse_args()

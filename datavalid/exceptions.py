@@ -1,8 +1,32 @@
 class BadConfigError(Exception):
+    """Raised when config object (a dictionary) has error
+
+    This error also records the `path` of where in the object the error
+    has occured.
+
+    Attributes
+        path (list[str or int]):
+            path of the offending field
+        msg (str):
+            the error message at `path`
+    """
     path: list[str or int]
     msg: str
 
     def __init__(self, path: list[str or int], msg: str) -> None:
+        """Creates a new instance of BadConfigError
+
+        Args:
+            path (list[str or int]):
+                path of offending field. Path may be an empty list if
+                the error message is not nested deep inside the config
+                object.
+            msg (str):
+                the error message at `path`.
+
+        Returns:
+            no value
+        """
         super().__init__(path, msg)
         self.path = path
         self.msg = msg
