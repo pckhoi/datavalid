@@ -15,32 +15,57 @@ Create a `datavalid.yml` file in your data folder:
 ```yaml
 files:
   fuse/complaint.csv:
-    - name: "`complaint_uid` should be unique per `allegation` x `uid`"
-      unique:
-        - complaint_uid
-        - uid
-        - allegation
-    - name: if `allegation_finding` is "sustained" then `disposition` should also be "sustained"
-      empty:
-        and:
-          - column: allegation_finding
-            op: equal
-            value: sustained
-          - column: disposition
-            op: not_equal
-            value: sustained
+    schema:
+      uid:
+        description: >
+          accused officer's unique identifier. This references the `uid` column in personnel.csv
+      tracking_number:
+        description: >
+          complaint tracking number from the agency the data originate from
+      complaint_uid:
+        description: >
+          complaint unique identifier
+        unique: true
+        not_empty: true
+    validation_tasks:
+      - name: "`complaint_uid`, `allegation` and `uid` should be unique together"
+        unique:
+          - complaint_uid
+          - uid
+          - allegation
+      - name: if `allegation_finding` is "sustained" then `disposition` should also be "sustained"
+        empty:
+          and:
+            - column: allegation_finding
+              op: equal
+              value: sustained
+            - column: disposition
+              op: not_equal
+              value: sustained
   fuse/event.csv:
-    - name: no officer with more than 1 left date in a calendar month
-      where:
-        column: kind
-        op: equal
-        value: officer_left
-      group_by: uid
-      no_more_than_once_per_30_days:
-        date_from:
-          year_column: year
-          month_column: month
-          day_column: day
+    schema:
+      event_uid:
+        description: >
+          unique identifier for each event
+        unique: true
+        not_empty: true
+      kind:
+        options:
+          - officer_level_1_cert
+          - officer_pc_12_qualification
+          - officer_rank
+    validation_tasks:
+      - name: no officer with more than 1 left date in a calendar month
+        where:
+          column: kind
+          op: equal
+          value: officer_left
+        group_by: uid
+        no_more_than_once_per_30_days:
+          date_from:
+            year_column: year
+            month_column: month
+            day_column: day
 save_bad_rows_to: invalid_rows.csv
 ```
 
@@ -62,8 +87,23 @@ A config file is a file named `datavalid.yml` and it must be placed in your root
 
 ### Config object
 
-- **files**: required, a mapping between files and validation tasks for each file. Each file path is evaluated relative to root data folder and each file must be in CSV format. Refer to [task object](#task-object) to learn more about validation task.
+- **files**: required, a mapping between file names and file configurations. Each file path is evaluated relative to root data folder and each file must be in CSV format. Refer to [file object](#file-object) to learn more about file configuration.
 - **save_bad_rows_to**: optional, which file to save offending rows to. If not defined then bad rows will just be output to terminal.
+
+### File object
+
+- **schema**: optional, description of each column in this file. This field accepts a [column schema object](#column-schema-object).
+- **validation_tasks**: optional, additional validation tasks to perform on this file. Refer to [task object](#task-object) to learn more.
+
+### Column schema object
+
+- **description**: optional, textual description of this column.
+- **unique**: optional, if set to true then this column can not contain duplicates.
+- **not_empty**: optional, if set to true then this column cannot contain empty values.
+- **integer**: optional, if set to true then this column can only contain integers.
+- **float**: optional, if set to true then this column can only contain floats.
+- **options**: optional, list of valid values for this column.
+- **range**: optional, list of 2 numbers. Lower bound and higher bound of what values are considered valid. Setting this imply `float: true`.
 
 ### Task object
 

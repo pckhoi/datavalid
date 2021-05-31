@@ -20,16 +20,54 @@ checker_dict = {
 
 
 class FieldSchema(object):
-    _desc: str or None
+    """Describes a column and validates it
+
+    Attributes:
+        desc (str):
+            description of this column
+        attrs (dict):
+            other attributes that was passed in during creation
+        failed_check (str):
+            available if valid() is False, name of the attribute
+            that this column failed
+        sr (pd.Series):
+            available if valid() is False, the offending values
+            as a series
+    """
+    desc: str or None
     _checkers: dict[str, Type[BaseFieldChecker]]
     attrs: dict
     failed_check: str
     sr: pd.Series
 
     def __init__(self, description: str or None = None, **kwargs) -> None:
-        self._desc = description
+        """Creates a new instance of FieldSchema
+
+        Args:
+            description (str):
+                description of this column
+            unique (bool):
+                whether this column can only contain unique values
+            not_empty (bool):
+                whether this column can only contain non-NA values
+            options (list of str):
+                if given then this column can only contain values
+                within this list
+            integer (bool):
+                whether this column can only contain integer values
+            float (bool):
+                whether this column can only contain float (and 
+                integer) values
+            range (list of 2 numbers):
+                ensure values in this column must be numeric and
+                must be between the 2 specified values
+
+        Returns:
+            no value
+        """
+        self.desc = description
         self._checkers = dict()
-        for k, v in sorted(kwargs.items(), key=lambda tup: tup[1]):
+        for k, v in kwargs.items():
             if k not in checker_dict:
                 raise BadConfigError([], 'unknown option %s' % k)
             try:
@@ -43,7 +81,16 @@ class FieldSchema(object):
                 raise BadConfigError([k]+e.path, e.msg)
         self.attrs = kwargs
 
-    def validate(self, sr: pd.Series) -> bool:
+    def valid(self, sr: pd.Series) -> bool:
+        """Checks whether this column's values are all valid
+
+        Args:
+            sr (pd.Series):
+                the series to check
+
+        Returns:
+            whether the series is valid
+        """
         for name, checker in self._checkers.items():
             res = checker.check(sr)
             if res is not None:

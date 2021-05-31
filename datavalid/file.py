@@ -1,4 +1,5 @@
 import pathlib
+from contextlib import contextmanager
 
 import pandas as pd
 from termcolor import colored
@@ -10,6 +11,8 @@ from .task import Task
 
 
 class File(object):
+    """Describes a file and validates it
+    """
     _tasks: list[Task]
     _datadir: pathlib.Path
     _filepath: pathlib.Path
@@ -21,68 +24,101 @@ class File(object):
         self,
         datadir: pathlib.Path,
         filename: str,
-        schema: dict,
+        schema: dict or None = None,
         validation_tasks: list[dict] or None = None,
         save_bad_rows_to: str or None = None,
         no_spinner: bool = False
     ) -> None:
+        """Creates a new instance of File
+
+        Args:
+            datadir (pathlib.Path):
+                the root folder for all data files
+            filename (str):
+                the file to validate
+            schema (dict):
+                schema for each column in this file
+            validation_tasks (list):
+                additional validation tasks to run on this file
+            save_bad_rows_to (str):
+                if one of the validation tasks fail then save
+                the bad rows into this file instead of outputting
+                to screen
+            no_spinner (bool):
+                don't show spinner during processing. Useful during
+                tests
+
+        Returns:
+            no value
+        """
         self._datadir = datadir
         self._filepath = self._datadir / filename
         self._no_spinner = no_spinner
         self._save_bad_rows_to = save_bad_rows_to
-        self._schema = dict()
         self._fields = list()
-        for k, v in schema.items():
-            self._fields.append(k)
-            if v is None:
-                continue
-            if type(v) is not dict:
-                raise BadConfigError(
-                    ['schema', k], 'value must be a dictionary'
-                )
-            self._schema[k] = FieldSchema(**v)
-
-        if type(validation_tasks) != list:
-            raise BadConfigError(
-                ['validation_tasks'],
-                'should be a list of validation tasks')
+        self._schema = dict()
         self._tasks = []
-        for i, task in enumerate(validation_tasks):
-            try:
-                self._tasks.append(Task(**task))
-            except BadConfigError as e:
+        if schema is not None:
+            if type(schema) != dict:
                 raise BadConfigError(
-                    ['validation_tasks', i]+e.path, e.msg
-                )
-            except TypeError as e:
-                raise BadConfigError(
-                    ['validation_tasks', i], str(e)
-                )
+                    ['schema'],
+                    'should be a dictionary of columns and their description')
+            for k, v in schema.items():
+                self._fields.append(k)
+                if v is None:
+                    continue
+                if type(v) is not dict:
+                    raise BadConfigError(
+                        ['schema', k], 'value must be a dictionary'
+                    )
+                self._schema[k] = FieldSchema(**v)
 
-    def print_col_err(self, col: str, err_msg: str) -> None:
+        if validation_tasks is not None:
+            if type(validation_tasks) != list:
+                raise BadConfigError(
+                    ['validation_tasks'],
+                    'should be a list of validation tasks')
+            for i, task in enumerate(validation_tasks):
+                try:
+                    self._tasks.append(Task(**task))
+                except BadConfigError as e:
+                    raise BadConfigError(
+                        ['validation_tasks', i]+e.path, e.msg
+                    )
+                except TypeError as e:
+                    raise BadConfigError(
+                        ['validation_tasks', i], str(e)
+                    )
+
+    def _print_col_err(self, col: str, err_msg: str) -> None:
         print("  %s column \"%s\" %s" % (
             colored("✕", "red"), col, err_msg
         ))
 
-    def valid(self) -> bool:
-        print("Validating file %s" % self._filepath)
-        df = pd.read_csv(self._filepath, low_memory=False)
+    @contextmanager
+    def _spinner(self, name: str, indent: int):
+        if self._no_spinner:
+            yield
+        else:
+            with Spinner(name, indent=indent):
+                yield
 
+    def _validate_schema(self, df: pd.DataFrame) -> bool:
         for col, schema in self._schema.items():
             if col not in df.columns:
-                self.print_col_err(col, "is not present")
+                self._print_col_err(col, "is not present")
                 return False
-            if not schema.validate(df[col]):
-                self.print_col_err(col, "failed %s check. Offending values:\n    %s" % (
+            if not schema.valid(df[col]):
+                self._print_col_err(col, 'failed "%s" check. Offending values:\n    %s' % (
                     schema.failed_check, schema.sr.to_string().replace('\n', '\n    ')
                 ))
+                return False
+        return True
 
+    def _validate_tasks(self, df: pd.DataFrame) -> bool:
         for task in self._tasks:
-            if self._no_spinner:
+            with self._spinner(task.name, indent=2):
                 succeed = task.run(df)
-            else:
-                with Spinner(task.name, indent=2):
-                    succeed = task.run(df)
             if succeed:
                 print("  %s %s" % (colored("✓", "green"), task.name))
             else:
@@ -95,5 +131,22 @@ class File(object):
                 else:
                     print(' '*4+task.df.to_string().replace('\n', '\n    '))
                 return False
+        return True
+
+    def valid(self) -> bool:
+        """Checks whether this file pass all validation tasks and match schema
+        """
+        print("Validating file %s" % self._filepath)
+        df = pd.read_csv(self._filepath, low_memory=False)
+
+        if len(self._schema) > 0:
+            with self._spinner('Validating schema', indent=2):
+                if not self._validate_schema(df):
+                    return False
+                else:
+                    print("  %s %s" % (colored("✓", "green"), 'Match schema'))
+
+        if not self._validate_tasks(df):
+            return False
 
         return True
