@@ -34,7 +34,7 @@ except BadConfigError as e:
           (str(conf_file), str(e).replace('\n', '\n  ')))
     sys.exit(1)
 if args.doc:
-    with open(args.doc) as f:
-        f.write(conf.to_markdown(args.doc.parent))
+    with open(args.doc, 'w') as f:
+        f.write(conf.to_markdown(args.doc.parent).strip()+'\n')
 else:
     sys.exit(conf.run())

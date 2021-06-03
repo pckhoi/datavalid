@@ -70,7 +70,7 @@ class FieldSchema(object):
             no value
         """
         self._name = name
-        self._desc = description
+        self._desc = None if description is None else description.strip()
         self._checkers = dict()
         for k, v in kwargs.items():
             if k not in checker_dict:
@@ -80,6 +80,8 @@ class FieldSchema(object):
                     self._checkers[k] = checker_dict[k]()
                 elif type(v) is list:
                     self._checkers[k] = checker_dict[k](*v)
+                elif type(v) is str:
+                    self._checkers[k] = checker_dict[k](v)
                 else:
                     raise BadConfigError([k], 'invalid option')
             except BadConfigError as e:
@@ -107,11 +109,11 @@ class FieldSchema(object):
         """Render this field schema as markdown."""
         return "\n".join(filter(None, [
             "- **%s**:" % self._name,
-            None if self._desc is None else "    - Description: %s\n" % self._desc,
+            None if self._desc is None else "  - Description: %s\n" % self._desc,
             None if len(self._checkers) == 0 else "\n".join(
-                ["    - Attributes:"]+[
-                    (" "*8)+checker.to_markdown().replace("\n", "\n         ")
+                ["  - Attributes:"]+[
+                    "    "+checker.to_markdown().replace("\n", "\n    ")
                     for checker in self._checkers.values()
-                ]
+                ]+[""]
             )
         ]))

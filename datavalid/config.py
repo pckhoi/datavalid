@@ -75,4 +75,4 @@ class Config(object):
         """Render file schemas as markdown"""
         return "\n".join([
             file.to_markdown(relative_to) for file in self._files.values()
-        ]+[""])
+        ])

@@ -1,9 +1,10 @@
+from __future__ import annotations
 import sys
 import time
 import threading
 
 
-class Spinner:
+class Spinner(object):
     """Displays a spinner at an indentation with some text to the terminal
 
     Example:
@@ -37,6 +38,7 @@ class Spinner:
         """
         self._spinner_generator = self._spinning_cursor()
         self._text = text
+        self._postfix_text = ''
         self._indent = indent
         if delay and float(delay):
             self._delay = delay
@@ -46,18 +48,27 @@ class Spinner:
             if self._indent > 0:
                 sys.stdout.write(" "*self._indent)
             sys.stdout.write(next(self._spinner_generator))
-            sys.stdout.write(" %s" % self._text)
+            sys.stdout.write(" %s" % self._text+self._postfix_text)
             sys.stdout.flush()
             time.sleep(self._delay)
-            sys.stdout.write('\r%s\r' % ' '*(self._indent+len(self._text)+2))
+            sys.stdout.write('\r%s\r' % ' '*(
+                self._indent + len(self._text+self._postfix_text)+2
+            ))
             sys.stdout.flush()
 
-    def __enter__(self):
+    def __enter__(self) -> Spinner:
         self._busy = True
         threading.Thread(target=self._spinner_task).start()
+        return self
 
     def __exit__(self, exception, value, tb):
         self._busy = False
         time.sleep(self._delay)
         if exception is not None:
             return False
+
+    def set_text(self, text: str) -> None:
+        self._text = text
+
+    def set_postfix_text(self, text: str) -> None:
+        self._postfix_text = text

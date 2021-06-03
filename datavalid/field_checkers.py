@@ -41,7 +41,7 @@ class UniqueFieldChecker(BaseFieldChecker):
         return sr[sr.duplicated(keep=False)]
 
     def to_markdown(self) -> str:
-        return "- Values are unique"
+        return "- Unique"
 
 
 class NoNAFieldChecker(BaseFieldChecker):
@@ -51,7 +51,7 @@ class NoNAFieldChecker(BaseFieldChecker):
         return sr[sr.isna()]
 
     def to_markdown(self) -> str:
-        return "- No NA/empty values"
+        return "- No NA"
 
 
 class OptionsFieldChecker(BaseFieldChecker):
@@ -76,8 +76,8 @@ class OptionsFieldChecker(BaseFieldChecker):
         return sr[~sr.isin(self._opts) & sr.notna()]
 
     def to_markdown(self) -> str:
-        return '\n'.join(["- Valid values are:"]+[
-            "    - "+opt for opt in self._opts
+        return '\n'.join(["- Options:"]+[
+            "  - "+opt for opt in self._opts
         ])
 
 
@@ -142,7 +142,7 @@ class RangeFieldChecker(FloatFieldChecker):
         return sr[(sr < self._low) | (sr > self._high)]
 
     def to_markdown(self) -> str:
-        return "- Values range from %d to %d" % (self._low, self._high)
+        return "- Range: `%d` -> `%d`" % (self._low, self._high)
 
 
 class TitleCaseFieldChecker(BaseFieldChecker):
@@ -178,4 +178,4 @@ class MatchRegexFieldChecker(BaseFieldChecker):
         ]
 
     def to_markdown(self) -> str:
-        return "- Match regexp pattern:\n    <pre>%s</pre>`" % self._pattern
+        return "<li>Match regexp: <code>%s</code></li>" % self._pattern
