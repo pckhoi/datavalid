@@ -4,7 +4,7 @@ import pandas as pd
 
 from .exceptions import BadConfigError
 from .field_checkers import (
-    BaseFieldChecker, TitleCaseChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
+    BaseFieldChecker, MatchRegexFieldChecker, TitleCaseFieldChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
     IntegerFieldChecker, FloatFieldChecker, RangeFieldChecker
 )
 
@@ -16,7 +16,8 @@ checker_dict = {
     'integer': IntegerFieldChecker,
     'float': FloatFieldChecker,
     'range': RangeFieldChecker,
-    'title_case': TitleCaseChecker,
+    'title_case': TitleCaseFieldChecker,
+    'match_regex': MatchRegexFieldChecker
 }
 
 

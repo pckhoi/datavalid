@@ -145,7 +145,7 @@ class RangeFieldChecker(FloatFieldChecker):
         return "- Values range from %d to %d" % (self._low, self._high)
 
 
-class TitleCaseChecker(BaseFieldChecker):
+class TitleCaseFieldChecker(BaseFieldChecker):
     """Checks that values are in title case
     """
 
@@ -161,3 +161,21 @@ class TitleCaseChecker(BaseFieldChecker):
 
     def to_markdown(self) -> str:
         return "- Title case"
+
+
+class MatchRegexFieldChecker(BaseFieldChecker):
+    """Checks that values match a regex pattern
+    """
+
+    def __init__(self, pattern: str) -> None:
+        super().__init__()
+        self._pattern = pattern
+
+    def _bad_values(self, sr: pd.Series) -> pd.Series:
+        return sr[
+            sr.notna() &
+            ~sr.fillna('').astype(str).str.match(self._pattern)
+        ]
+
+    def to_markdown(self) -> str:
+        return "- Match regexp pattern:\n    <pre>%s</pre>`" % self._pattern

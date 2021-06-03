@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.testing import assert_series_equal
 
 from datavalid.field_checkers import (
-    TitleCaseChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
+    MatchRegexFieldChecker, TitleCaseFieldChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
     IntegerFieldChecker, FloatFieldChecker, RangeFieldChecker
 )
 
@@ -84,7 +84,7 @@ class RangeFieldCheckerTestCase(TestCase):
 
 class TitleCaseFieldCheckerTestCase(TestCase):
     def test_check(self):
-        c = TitleCaseChecker()
+        c = TitleCaseFieldChecker()
 
         self.assertIsNone(c.check(pd.Series([
             np.NaN, '', 'John', 'Sullivan Jr', 'Ivan III'
@@ -93,4 +93,18 @@ class TitleCaseFieldCheckerTestCase(TestCase):
         assert_series_equal(
             c.check(pd.Series(["earl", "GREY"])),
             pd.Series(["earl"])
+        )
+
+
+class MatchRegexFieldCheckerTestCase(TestCase):
+    def test_check(self):
+        c = MatchRegexFieldChecker(r'\d{2}:\d{2}$')
+
+        self.assertIsNone(c.check(pd.Series([
+            np.NaN, '10:30', '03:45'
+        ])))
+
+        assert_series_equal(
+            c.check(pd.Series(['', '1030', '15:03'])),
+            pd.Series(['', '1030'])
         )

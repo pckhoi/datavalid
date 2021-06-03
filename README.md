@@ -105,6 +105,7 @@ A config file is a file named `datavalid.yml` and it must be placed in your root
 - **options**: optional, list of valid values for this column.
 - **range**: optional, list of 2 numbers. Lower bound and higher bound of what values are considered valid. Setting this imply `float: true`.
 - **title_case**: optional, if set to true then all words in this column must begin with an upper case letter.
+- **match_regex**: optional, regexp pattern to match against all values.
 
 ### Task object
 
