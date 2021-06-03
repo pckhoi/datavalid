@@ -29,6 +29,10 @@ class BaseFieldChecker(object):
             return None
         return sr
 
+    def to_markdown(self) -> str:
+        """Render this quality as markdown text."""
+        raise NotImplementedError()
+
 
 class UniqueFieldChecker(BaseFieldChecker):
     """Checks that column only contain unique values"""
@@ -36,12 +40,18 @@ class UniqueFieldChecker(BaseFieldChecker):
     def _bad_values(self, sr: pd.Series) -> pd.Series:
         return sr[sr.duplicated(keep=False)]
 
+    def to_markdown(self) -> str:
+        return "- Values are unique"
 
-class NotEmptyFieldChecker(BaseFieldChecker):
+
+class NoNAFieldChecker(BaseFieldChecker):
     """Checks that column contain no NA value"""
 
     def _bad_values(self, sr: pd.Series) -> pd.Series:
         return sr[sr.isna()]
+
+    def to_markdown(self) -> str:
+        return "- No NA/empty values"
 
 
 class OptionsFieldChecker(BaseFieldChecker):
@@ -65,6 +75,11 @@ class OptionsFieldChecker(BaseFieldChecker):
     def _bad_values(self, sr: pd.Series) -> pd.Series:
         return sr[~sr.isin(self._opts) & sr.notna()]
 
+    def to_markdown(self) -> str:
+        return '\n'.join(["- Valid values are:"]+[
+            "    - "+opt for opt in self._opts
+        ])
+
 
 class IntegerFieldChecker(BaseFieldChecker):
     """Checks that column only contain integer values"""
@@ -79,6 +94,9 @@ class IntegerFieldChecker(BaseFieldChecker):
             # return the strings
             return sr[sr.str.match('').notna()]
 
+    def to_markdown(self) -> str:
+        return "- Integer"
+
 
 class FloatFieldChecker(BaseFieldChecker):
     """Checks that column only contain float (or integer) values"""
@@ -88,6 +106,9 @@ class FloatFieldChecker(BaseFieldChecker):
             return pd.Series([])
         else:
             return sr[sr.str.match('').notna()]
+
+    def to_markdown(self) -> str:
+        return "- Float"
 
 
 class RangeFieldChecker(FloatFieldChecker):
@@ -119,3 +140,6 @@ class RangeFieldChecker(FloatFieldChecker):
         if res.size > 0:
             return res
         return sr[(sr < self._low) | (sr > self._high)]
+
+    def to_markdown(self) -> str:
+        return "- Values range from %d to %d" % (self._low, self._high)

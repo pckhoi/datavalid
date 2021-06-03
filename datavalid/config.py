@@ -1,10 +1,5 @@
 import pathlib
 
-import pandas as pd
-from termcolor import colored
-
-from .task import Task
-from .spinner import Spinner
 from .exceptions import BadConfigError
 from .file import File
 
@@ -75,3 +70,9 @@ class Config(object):
                 return 1
         print("All good!")
         return 0
+
+    def to_markdown(self, relative_to: pathlib.Path or None = None) -> str:
+        """Render file schemas as markdown"""
+        return "\n".join([
+            file.to_markdown(relative_to) for file in self._files.values()
+        ]+[""])

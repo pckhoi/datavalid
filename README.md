@@ -26,7 +26,7 @@ files:
         description: >
           complaint unique identifier
         unique: true
-        not_empty: true
+        no_na: true
     validation_tasks:
       - name: "`complaint_uid`, `allegation` and `uid` should be unique together"
         unique:
@@ -48,7 +48,7 @@ files:
         description: >
           unique identifier for each event
         unique: true
-        not_empty: true
+        no_na: true
       kind:
         options:
           - officer_level_1_cert
@@ -99,7 +99,7 @@ A config file is a file named `datavalid.yml` and it must be placed in your root
 
 - **description**: optional, textual description of this column.
 - **unique**: optional, if set to true then this column can not contain duplicates.
-- **not_empty**: optional, if set to true then this column cannot contain empty values.
+- **no_na**: optional, if set to true then this column cannot contain empty values.
 - **integer**: optional, if set to true then this column can only contain integers.
 - **float**: optional, if set to true then this column can only contain floats.
 - **options**: optional, list of valid values for this column.

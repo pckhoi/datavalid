@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.testing import assert_series_equal
 
 from datavalid.field_checkers import (
-    UniqueFieldChecker, NotEmptyFieldChecker, OptionsFieldChecker,
+    UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
     IntegerFieldChecker, FloatFieldChecker, RangeFieldChecker
 )
 
@@ -20,9 +20,9 @@ class UniqueFieldCheckerTestCase(TestCase):
         )
 
 
-class NotEmptyFieldCheckerTestCase(TestCase):
+class NoNAFieldCheckerTestCase(TestCase):
     def test_check(self):
-        c = NotEmptyFieldChecker()
+        c = NoNAFieldChecker()
         self.assertIsNone(c.check(pd.Series([1, 2, 3])))
         assert_series_equal(
             c.check(pd.Series([1, np.NaN, 2])),

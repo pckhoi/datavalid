@@ -10,7 +10,7 @@ from datavalid.schema import FieldSchema
 class FieldSchemaTestCase(TestCase):
     def test_validate(self):
         field = FieldSchema(
-            "test field", unique=True, not_empty=True, options=['a', 'b', 'c']
+            "test_field", unique=True, no_na=True, options=['a', 'b', 'c']
         )
 
         self.assertTrue(field.valid(pd.Series(['b', 'c', 'a'])))
@@ -23,7 +23,7 @@ class FieldSchemaTestCase(TestCase):
         assert_series_equal(
             field.sr, pd.Series([np.NaN], index=[2]), check_dtype=False
         )
-        self.assertEqual(field.failed_check, 'not_empty')
+        self.assertEqual(field.failed_check, 'no_na')
 
         self.assertFalse(field.valid(pd.Series(['d', 'a', 'c'])))
         assert_series_equal(field.sr, pd.Series(['d']))

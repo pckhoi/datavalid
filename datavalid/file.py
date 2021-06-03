@@ -71,7 +71,7 @@ class File(object):
                     raise BadConfigError(
                         ['schema', k], 'value must be a dictionary'
                     )
-                self._schema[k] = FieldSchema(**v)
+                self._schema[k] = FieldSchema(k, **v)
 
         if validation_tasks is not None:
             if type(validation_tasks) != list:
@@ -150,3 +150,40 @@ class File(object):
             return False
 
         return True
+
+    def to_markdown(self, relative_to: pathlib.Path or None = None) -> str:
+        """Render this file's schema as Markdown
+
+        Args:
+            relative_to (pathlib.Path):
+                file path will be relative to this path. If this is not
+                set then file path will be relative to CWD.
+
+        Returns:
+            markdown string
+        """
+        if relative_to is None:
+            relative_to = pathlib.Path.cwd()
+        return "\n".join([
+            "## File %s" % self._filepath.relative_to(relative_to),
+            "",
+        ]+(
+            [] if len(self._schema) == 0 else (
+                [
+                    "### Schema",
+                    ""
+                ]+[
+                    field.to_markdown() for field in self._schema.values()
+                ]
+            )
+        )+(
+            [] if len(self._tasks) == 0 else (
+                [
+                    "### Other characteristics",
+                    ""
+                ]+[
+                    task.to_markdown() for task in self._tasks
+                ]
+            )
+        )
+        )

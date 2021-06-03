@@ -124,3 +124,7 @@ class Task(object):
     @property
     def df(self) -> pd.DataFrame:
         return self._checker.df
+
+    def to_markdown(self) -> str:
+        """Render this task as markdown"""
+        return "- %s" % self.name

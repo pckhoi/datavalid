@@ -4,14 +4,14 @@ import pandas as pd
 
 from .exceptions import BadConfigError
 from .field_checkers import (
-    BaseFieldChecker, UniqueFieldChecker, NotEmptyFieldChecker, OptionsFieldChecker,
+    BaseFieldChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
     IntegerFieldChecker, FloatFieldChecker, RangeFieldChecker
 )
 
 
 checker_dict = {
     'unique': UniqueFieldChecker,
-    'not_empty': NotEmptyFieldChecker,
+    'no_na': NoNAFieldChecker,
     'options': OptionsFieldChecker,
     'integer': IntegerFieldChecker,
     'float': FloatFieldChecker,
@@ -34,21 +34,23 @@ class FieldSchema(object):
             available if valid() is False, the offending values
             as a series
     """
-    desc: str or None
+    _desc: str or None
+    _name: str
     _checkers: dict[str, Type[BaseFieldChecker]]
-    attrs: dict
     failed_check: str
     sr: pd.Series
 
-    def __init__(self, description: str or None = None, **kwargs) -> None:
+    def __init__(self, name: str, description: str or None = None, **kwargs) -> None:
         """Creates a new instance of FieldSchema
 
         Args:
+            name (str):
+                name of this column
             description (str):
                 description of this column
             unique (bool):
                 whether this column can only contain unique values
-            not_empty (bool):
+            no_na (bool):
                 whether this column can only contain non-NA values
             options (list of str):
                 if given then this column can only contain values
@@ -56,7 +58,7 @@ class FieldSchema(object):
             integer (bool):
                 whether this column can only contain integer values
             float (bool):
-                whether this column can only contain float (and 
+                whether this column can only contain float (and
                 integer) values
             range (list of 2 numbers):
                 ensure values in this column must be numeric and
@@ -65,7 +67,8 @@ class FieldSchema(object):
         Returns:
             no value
         """
-        self.desc = description
+        self._name = name
+        self._desc = description
         self._checkers = dict()
         for k, v in kwargs.items():
             if k not in checker_dict:
@@ -79,7 +82,6 @@ class FieldSchema(object):
                     raise BadConfigError([k], 'invalid option')
             except BadConfigError as e:
                 raise BadConfigError([k]+e.path, e.msg)
-        self.attrs = kwargs
 
     def valid(self, sr: pd.Series) -> bool:
         """Checks whether this column's values are all valid
@@ -98,3 +100,16 @@ class FieldSchema(object):
                 self.failed_check = name
                 return False
         return True
+
+    def to_markdown(self) -> str:
+        """Render this field schema as markdown."""
+        return "\n".join(filter(None, [
+            "- **%s**:" % self._name,
+            None if self._desc is None else "    - Description: %s\n" % self._desc,
+            None if len(self._checkers) == 0 else "\n".join(
+                ["    - Attributes:"]+[
+                    (" "*8)+checker.to_markdown().replace("\n", "\n         ")
+                    for checker in self._checkers.values()
+                ]
+            )
+        ]))
