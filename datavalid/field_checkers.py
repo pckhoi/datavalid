@@ -143,3 +143,21 @@ class RangeFieldChecker(FloatFieldChecker):
 
     def to_markdown(self) -> str:
         return "- Values range from %d to %d" % (self._low, self._high)
+
+
+class TitleCaseChecker(BaseFieldChecker):
+    """Checks that values are in title case
+    """
+
+    def _bad_values(self, sr: pd.Series) -> pd.Series:
+        return sr[
+            sr.notna() & sr.fillna('').astype(str).map(
+                lambda x: all([
+                    e != '' and e[0].upper() != e[0]
+                    for e in x.split(' ')
+                ])
+            )
+        ]
+
+    def to_markdown(self) -> str:
+        return "- Title case"

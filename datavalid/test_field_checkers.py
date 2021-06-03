@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.testing import assert_series_equal
 
 from datavalid.field_checkers import (
-    UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
+    TitleCaseChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
     IntegerFieldChecker, FloatFieldChecker, RangeFieldChecker
 )
 
@@ -79,4 +79,18 @@ class RangeFieldCheckerTestCase(TestCase):
         assert_series_equal(
             c.check(pd.Series([20, 1899, 1970, 2021])),
             pd.Series([20, 1899, 2021], index=[0, 1, 3])
+        )
+
+
+class TitleCaseFieldCheckerTestCase(TestCase):
+    def test_check(self):
+        c = TitleCaseChecker()
+
+        self.assertIsNone(c.check(pd.Series([
+            np.NaN, '', 'John', 'Sullivan Jr', 'Ivan III'
+        ])))
+
+        assert_series_equal(
+            c.check(pd.Series(["earl", "GREY"])),
+            pd.Series(["earl"])
         )
