@@ -113,6 +113,7 @@ Common fields:
 - **name**: required, name of validation task.
 - **where**: optional, how to filter the data. This field accepts a [condition object](#condition-object).
 - **group_by**: optional, how to divide the data before validation. This could be a single column name or a list of column names to group the data with.
+- **warn_only**: optional, if set to true then failing this validation only generate a warning rather than failing the whole run.
 
 Checker fields (define exactly one of these fields):
 

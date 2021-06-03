@@ -15,8 +15,12 @@ class TaskTestCase(TestCase):
             ['jane', 'smith', 30]
         ], columns=columns)
 
-        task = Task('everyone should be older than 25', empty={
-                    'column': 'age', 'op': 'greater_than', 'value': 25})
+        task = Task(
+            'everyone should be younger than 25',
+            empty={
+                'column': 'age', 'op': 'greater_equal', 'value': 25
+            }
+        )
         self.assertFalse(task.run(df))
         self.assertEqual(task.err_msg, 'There are 2 such rows')
         assert_frame_equal(task.df, pd.DataFrame([

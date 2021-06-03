@@ -9,9 +9,17 @@ class Task(object):
     """Defines and performs validation task on the given data.
 
     Attributes:
-        err_msg (str): error message, available if run() returns False
-        df (pd.DataFrame): offending rows, available if run() returns False
+        err_msg (str):
+            error message, available if run() returns False
+        df (pd.DataFrame):
+            offending rows, available if run() returns False
+        warn_only (bool):
+            if true then failing this validation will only
+            generate a warning rather than failing the whole
+            run
     """
+
+    warn_only: bool
 
     def __init__(
         self,
@@ -21,7 +29,8 @@ class Task(object):
         unique: str or list[str] or None = None,
         empty: dict or None = None,
         no_consecutive_date: dict or None = None,
-        no_more_than_once_per_30_days: dict or None = None
+        no_more_than_once_per_30_days: dict or None = None,
+        warn_only: bool = False
     ) -> None:
         """Creates a new instance of Task
 
@@ -51,6 +60,9 @@ class Task(object):
                 if defined, this task's checker will be a NoMoreThanOncePer30DaysChecker
                 with this argument passed in as keyword arguments to
                 NoMoreThanOncePer30DaysChecker.
+            warn_only (bool):
+                if set to true then failing this validation will only generate a warning
+                rather than failing the whole run.
 
         Raises:
             BadConfigError: There's a problem with passed-in arguments
@@ -64,6 +76,7 @@ class Task(object):
                 'task must have a name specified with "name" key'
             )
         self.name = name
+        self.warn_only = warn_only
         self._filter = Filter(where, group_by)
         if unique is not None:
             try:

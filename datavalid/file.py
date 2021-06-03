@@ -122,15 +122,19 @@ class File(object):
             if succeed:
                 print("  %s %s" % (colored("✓", "green"), task.name))
             else:
-                print("  %s %s" % (colored("✕", "red"), task.name))
+                if task.warn_only:
+                    print("  %s %s" % (colored("⚠", "yellow"), task.name))
+                else:
+                    print("  %s %s" % (colored("✕", "red"), task.name))
                 print(' '*4+task.err_msg.replace('\n', '\n    '))
-                if self._save_bad_rows_to is not None:
+                if not task.warn_only and self._save_bad_rows_to is not None:
                     rows_path = self._datadir / self._save_bad_rows_to
                     task.df.to_csv(rows_path, index=False)
                     print('    Saved bad rows to %s' % rows_path)
                 else:
                     print(' '*4+task.df.to_string().replace('\n', '\n    '))
-                return False
+                if not task.warn_only:
+                    return False
         return True
 
     def valid(self) -> bool:

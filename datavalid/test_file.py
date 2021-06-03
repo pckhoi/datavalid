@@ -80,6 +80,44 @@ class FileTestCase(TestCase):
 
         os.remove(fp)
 
+    def test_task_warn(self):
+        with NamedTemporaryFile(delete=False) as f:
+            pd.DataFrame([
+                ['john', 'doe', 23],
+                ['jean', 'smith', 43],
+                ['jane', 'smith', 30]
+            ], columns=['first', 'last', 'age']).to_csv(f, index=False)
+            fp = Path(f.name)
+
+        file = File(fp.parent, str(fp), validation_tasks=[
+            {
+                'name': 'the smiths should be younger than 30',
+                'empty': {
+                    'and': [
+                        {'column': 'last', 'op': 'equal', 'value': 'smith'},
+                        {'column': 'age', 'op': 'greater_equal', 'value': 30},
+                    ],
+                },
+                'warn_only': True
+            }
+        ], no_spinner=True)
+
+        buf = StringIO()
+        with redirect_stdout(buf):
+            self.assertTrue(file.valid())
+            sys.stdout.flush()
+        self.assertEqual(buf.getvalue(), '\n'.join([
+            'Validating file ' + str(fp),
+            '  [33m⚠[0m the smiths should be younger than 30',
+            '    There are 2 such rows',
+            '      first   last  age',
+            '    0  jean  smith   43',
+            '    1  jane  smith   30',
+            '',
+        ]))
+
+        os.remove(fp)
+
     def test_save_bad_rows_to(self):
         with NamedTemporaryFile(delete=False) as f:
             pd.DataFrame([

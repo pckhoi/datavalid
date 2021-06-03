@@ -36,7 +36,15 @@ class EmptyCheckTestCase(TestCase):
         ], columns=columns)
 
         self.assertTrue(EmptyChecker(
-            column='first', op='equal', value='smith').check(df))
+            column='first', op='equal', value='smith'
+        ).check(df))
+
+        self.assertFalse(EmptyChecker(**{
+            'and': [
+                {'column': 'last', 'op': 'equal', 'value': 'smith'},
+                {'column': 'age', 'op': 'greater_equal', 'value': 30},
+            ]
+        }).check(df))
 
         checker = EmptyChecker(column='first', op='equal', value='john')
         self.assertFalse(checker.check(df))
