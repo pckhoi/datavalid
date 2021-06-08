@@ -57,10 +57,10 @@ class ConfigTestCase(TestCase):
             conf.run()
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'Validating file ' + str(fp_1),
+            'Validating ' + str(fp_1),
             '[32m  ✓ the smiths should have unique first name[0m',
-            'Validating file ' + str(fp_2),
-            '[32m  ✓ Match schema[0m',
+            'Validating ' + str(fp_2),
+            '[32m  ✓ All columns match schema[0m',
             'All good!',
             '',
         ]))

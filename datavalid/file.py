@@ -169,19 +169,19 @@ class File(object):
     def valid(self) -> bool:
         """Checks whether this file pass all validation tasks and match schema
         """
-        print("Validating file %s" % self._filepath)
+        print("Validating %s" % self._filepath)
         df = pd.read_csv(self._filepath, low_memory=False)
         succeed = True
 
         if len(self._schema) > 0:
             msgs = []
-            with self._spinner('Validating schema', indent=2) as spinner:
+            with self._spinner('Validating columns', indent=2) as spinner:
                 for err_msg in self._validate_schema(df):
                     msgs.append(err_msg)
                 if spinner is not None:
                     spinner.set_postfix_text('\n'.join(msgs))
             if len(msgs) == 0:
-                print(colored("  ✓ Match schema", "green"))
+                print(colored("  ✓ All columns match schema", "green"))
             else:
                 succeed = False
                 print(colored("  ✕ Does not match schema", "red"))

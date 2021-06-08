@@ -37,7 +37,7 @@ class FileTestCase(TestCase):
             self.assertTrue(file.valid())
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'Validating file ' + str(fp),
+            'Validating ' + str(fp),
             '[32m  ✓ the smiths should have unique first name[0m',
             '',
         ]))
@@ -69,7 +69,7 @@ class FileTestCase(TestCase):
             self.assertFalse(file.valid())
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'Validating file ' + str(fp),
+            'Validating ' + str(fp),
             '[31m  ✕ no more than one event a month[0m',
             '    2 rows detected occur too close together',
             '              event  event_year  event_month  event_day',
@@ -107,7 +107,7 @@ class FileTestCase(TestCase):
             self.assertTrue(file.valid())
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'Validating file ' + str(fp),
+            'Validating ' + str(fp),
             '[33m  ⚠ the smiths should be younger than 30[0m',
             '    There are 2 such rows',
             '      first   last  age',
@@ -142,7 +142,7 @@ class FileTestCase(TestCase):
             self.assertFalse(file.valid())
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'Validating file ' + str(fp_1),
+            'Validating ' + str(fp_1),
             '[31m  ✕ last name should be unique[0m',
             '    Table contains duplicates',
             '    Saved bad rows to ' + str(fp_2),
@@ -176,7 +176,7 @@ class FileTestCase(TestCase):
             self.assertFalse(file.valid())
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
-            'Validating file ' + str(fp),
+            'Validating ' + str(fp),
             '[31m  ✕ Does not match schema[0m',
             '    [31m✕[0m column [33mlast[0m failed [35munique[0m check. [36m2[0m offending values:',
             '      1    smith',
