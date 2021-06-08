@@ -38,7 +38,7 @@ class FileTestCase(TestCase):
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
             'Validating file ' + str(fp),
-            '  [32m✓[0m the smiths should have unique first name',
+            '[32m  ✓ the smiths should have unique first name[0m',
             '',
         ]))
 
@@ -70,7 +70,7 @@ class FileTestCase(TestCase):
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
             'Validating file ' + str(fp),
-            '  [31m✕[0m no more than one event a month',
+            '[31m  ✕ no more than one event a month[0m',
             '    2 rows detected occur too close together',
             '              event  event_year  event_month  event_day',
             '    1  officer_join        2000            1          3',
@@ -108,7 +108,7 @@ class FileTestCase(TestCase):
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
             'Validating file ' + str(fp),
-            '  [33m⚠[0m the smiths should be younger than 30',
+            '[33m  ⚠ the smiths should be younger than 30[0m',
             '    There are 2 such rows',
             '      first   last  age',
             '    0  jean  smith   43',
@@ -143,7 +143,7 @@ class FileTestCase(TestCase):
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
             'Validating file ' + str(fp_1),
-            '  [31m✕[0m last name should be unique',
+            '[31m  ✕ last name should be unique[0m',
             '    Table contains duplicates',
             '    Saved bad rows to ' + str(fp_2),
             '',
@@ -177,8 +177,9 @@ class FileTestCase(TestCase):
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
             'Validating file ' + str(fp),
-            '  [31m✕[0m column "last" failed "unique" check. Offending values:',
-            '    1    smith',
-            '    2    smith',
+            '[31m  ✕ Does not match schema[0m',
+            '    [31m✕[0m column [33mlast[0m failed [35munique[0m check. [36m2[0m offending values:',
+            '      1    smith',
+            '      2    smith',
             '',
         ]))

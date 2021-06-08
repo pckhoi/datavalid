@@ -1,5 +1,7 @@
 import pathlib
 
+import pandas as pd
+
 from .exceptions import BadConfigError
 from .file import File
 
@@ -65,9 +67,12 @@ class Config(object):
         Returns:
             The exit code for the program.
         """
+        succeed = True
         for file in self._files.values():
             if not file.valid():
-                return 1
+                succeed = False
+        if not succeed:
+            return 1
         print("All good!")
         return 0
 

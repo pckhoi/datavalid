@@ -1,3 +1,4 @@
+import os
 import pathlib
 from contextlib import contextmanager
 from typing import Iterator
@@ -9,6 +10,11 @@ from .exceptions import BadConfigError
 from .schema import FieldSchema
 from .spinner import Spinner
 from .task import Task
+
+try:
+    TERM_COLS = int(os.popen('stty size', 'r').read().split()[1])
+except IndexError:
+    TERM_COLS = 100
 
 
 class File(object):
@@ -101,8 +107,8 @@ class File(object):
                     )
 
     def _col_err_msg(self, col: str, err_msg: str) -> str:
-        return "    %s column \"%s\" %s" % (
-            colored("✕", "red"), col, err_msg
+        return "    %s column %s %s" % (
+            colored("✕", "red"), colored(col, "yellow"), err_msg
         )
 
     @contextmanager
@@ -117,12 +123,20 @@ class File(object):
         for col, schema in self._schema.items():
             if col not in df.columns:
                 yield self._col_err_msg(col, "is not present")
-            if not schema.valid(df[col]):
+            elif not schema.valid(df.loc[:, col]):
+                if schema.sr.size > 10:
+                    sr = schema.sr[:10]
+                    dots = '\n      ...'
+                else:
+                    sr = schema.sr
+                    dots = ''
                 yield self._col_err_msg(
                     col,
-                    'failed "%s" check. Offending values:\n      %s' % (
-                        schema.failed_check,
-                        schema.sr.to_string().replace('\n', '\n      ')
+                    'failed %s check. %s offending values:\n      %s%s' % (
+                        colored(schema.failed_check, "magenta"),
+                        colored(schema.sr.size, "cyan"),
+                        sr.to_string().replace('\n', '\n      '),
+                        dots
                     )
                 )
 
@@ -143,7 +157,11 @@ class File(object):
                     task.df.to_csv(rows_path, index=False)
                     print('    Saved bad rows to %s' % rows_path)
                 else:
-                    print(' '*4+task.df.to_string().replace('\n', '\n    '))
+                    print(
+                        ' '*4 +
+                        task.df.to_string(line_width=TERM_COLS-4)
+                        .replace('\n', '\n    ')
+                    )
                 if not task.warn_only:
                     return False
         return True
@@ -165,6 +183,7 @@ class File(object):
             if len(msgs) == 0:
                 print(colored("  ✓ Match schema", "green"))
             else:
+                succeed = False
                 print(colored("  ✕ Does not match schema", "red"))
                 for err_msg in msgs:
                     print(err_msg)
@@ -172,7 +191,7 @@ class File(object):
         if not self._validate_tasks(df):
             return False
 
-        return True
+        return succeed
 
     def to_markdown(self, relative_to: pathlib.Path or None = None) -> str:
         """Render this file's schema as Markdown
