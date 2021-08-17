@@ -3,8 +3,8 @@ import datetime
 import pandas as pd
 
 from .condition import Condition
-from .date import DateParser
-from .exceptions import BadConfigError
+from .date import DateParser, parse_single_date
+from .exceptions import BadConfigError, BadDateError
 
 
 class UniqueChecker(object):
@@ -128,7 +128,12 @@ class NoConsecutiveDateChecker(object):
         Returns:
             True or False depending on whether data pass the check.
         """
-        date_series = self._date_parser.parse(df)
+        try:
+            date_series = self._date_parser.parse(df).date
+        except BadDateError as e:
+            self.err_msg = e.msg
+            self.df = e.rows
+            return False
         prev_date = None
         prev_ind = None
         succeed = True
@@ -187,7 +192,12 @@ class NoMoreThanOncePer30DaysChecker(object):
             True or False depending on whether data pass the check.
         """
         df = df.copy(True)
-        df.loc[:, 'datavalid_date'] = self._date_parser.parse(df)
+        try:
+            df.loc[:, 'datavalid_date'] = self._date_parser.parse(df).date
+        except BadDateError as e:
+            self.err_msg = e.msg
+            self.df = e.rows
+            return False
         df = df.sort_values('datavalid_date')
         prev_date = None
         prev_idx = None
@@ -205,4 +215,82 @@ class NoMoreThanOncePer30DaysChecker(object):
             self.df = df.loc[list(indices)].sort_values('datavalid_date')\
                 .drop(columns=['datavalid_date'])
             return False
+        return True
+
+
+class ValidDateChecker(object):
+    """Checks that dates are valid
+
+    Attributes:
+        err_msg (str): error message, available if check() returns False
+        df (pd.DataFrame): offending rows, available if check() returns False
+    """
+    df: pd.DataFrame or None
+    err_msg: str or None
+    _date_parser: DateParser
+    _min_date: datetime.datetime or None = None
+
+    def __init__(self, date_from: dict or None = None, min_date: str or None = None) -> None:
+        """Creates new instance of ValidDateChecker
+
+        Args:
+            date_from (dict): arguments to pass to DateParser()
+            min_date (str): ensure no date is less than this date
+
+        Raises:
+            BadConfigError: There's a problem with passed-in arguments
+
+        Returns:
+            no value
+        """
+        if date_from is None:
+            raise BadConfigError([], 'should contain key "date_from"')
+        if type(date_from) is not dict:
+            raise BadConfigError([], '"date_from" should be a dict')
+        try:
+            self._date_parser = DateParser(**date_from)
+        except BadConfigError as e:
+            raise BadConfigError(['date_from']+e.path, e.msg)
+        except TypeError as e:
+            raise BadConfigError(['date_from'], str(e))
+        if min_date is not None:
+            try:
+                self._min_date = parse_single_date(min_date)
+            except BadConfigError as e:
+                raise BadConfigError(['min_date']+e.path, e.msg)
+
+    def check(self, df: pd.DataFrame) -> bool:
+        """Returns whether table pass the check
+
+        Args:
+            df (pd.DataFrame): data to perform check on
+
+        Returns:
+            True or False depending on whether data pass the check.
+        """
+        try:
+            dates = self._date_parser.parse(df)
+        except BadDateError as e:
+            self.err_msg = e.msg
+            self.df = e.rows
+            return False
+
+        if self._min_date is not None:
+            self.df = df.loc[
+                (dates.year < self._min_date.year)
+                | ((dates.year == self._min_date.year) & (
+                    (dates.month < self._min_date.month)
+                    | (
+                        (dates.month == self._min_date.month)
+                        & (dates.day < self._min_date.day)
+                    )
+                ))
+            ]
+            if self.df.shape[0] > 0:
+                self.err_msg = 'dates less than "%s" detected' % (
+                    self._min_date.strftime('%Y-%m-%d')
+                )
+                return False
+
+        self.df = None
         return True

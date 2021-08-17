@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 class BadConfigError(Exception):
     """Raised when config object (a dictionary) has error
 
@@ -43,3 +46,32 @@ class BadConfigError(Exception):
             else:
                 sl.append('.%s' % key)
         return 'error at %s: %s' % (''.join(sl), self.msg)
+
+
+class BadDateError(ValueError):
+    """Raised when rows with invalid dates are detected
+
+    Attributes
+        msg (str):
+            the error message
+        rows (pd.DataFrame):
+            rows with invalid dates
+    """
+    msg: str
+    rows: pd.DataFrame
+
+    def __init__(self, msg: str, rows: pd.DataFrame) -> None:
+        """Creates a new instance of BadDateError
+
+        Args:
+            msg (str):
+                the error message
+            rows (pd.DataFrame):
+                rows with invalid dates
+
+        Returns:
+            no value
+        """
+        super().__init__(msg)
+        self.msg = msg
+        self.rows = rows

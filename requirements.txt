@@ -2,3 +2,4 @@ numpy==1.18
 pandas==1.2
 pyyaml==5.4.1
 termcolor==1.1.0
+time-machine==2.3.1

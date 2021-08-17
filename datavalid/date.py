@@ -1,6 +1,8 @@
+import datetime
+
 import pandas as pd
 
-from .exceptions import BadConfigError
+from .exceptions import BadConfigError, BadDateError
 
 
 class DateParser(object):
@@ -31,15 +33,81 @@ class DateParser(object):
             raise BadConfigError([], '"day_column" should be a column name')
         self._day = day_column
 
-    def parse(self, df: pd.DataFrame) -> pd.Series:
-        """Produces a date series from the given data.
+    def parse(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Produces a date dataframe (including date, year, month, day column) from the given data.
 
         Args:
             df (pd.DataFrame): data to derive date from
 
+        Raises:
+            BadDateError: Impossible dates detected
+
         Returns:
-            a date series
+            a date dataframe
         """
+        today = datetime.date.today()
+        year = df[self._year].astype('Int64')
+        month = df[self._month].astype('Int64')
+        day = df[self._day].astype('Int64')
+
+        rows = df.loc[month.notna() & ((month < 1) | (month > 12))]
+        if rows.shape[0] > 0:
+            raise BadDateError('impossible months detected', rows)
+
+        rows = df.loc[
+            (year > today.year)
+            | (
+                (year == today.year)
+                & (
+                    (month.notna() & (month > today.month))
+                    | (day.notna() & (month == today.month) & (day > today.day))
+                )
+            )
+        ]
+        if rows.shape[0] > 0:
+            raise BadDateError('future dates detected', rows)
+
+        rows = df.loc[day < 0]
+        if rows.shape[0] > 0:
+            raise BadDateError('negative days detected', rows)
+
+        leap_year = (year % 400 == 0) | ((year % 4 == 0) & (year % 100 != 0))
+        rows = df.loc[
+            (month.isin([1, 3, 5, 7, 8, 10, 12]) & (day > 31))
+            | (month.isin([4, 6, 9, 11]) & (day > 30))
+            | ((month == 2) & (
+                (~leap_year & (day > 28))
+                | (leap_year & (day > 29))
+            ))
+        ]
+        if rows.shape[0] > 0:
+            raise BadDateError('impossible dates detected', rows)
+
         dates = df[[self._year, self._month, self._day]]
         dates.columns = ["year", "month", "day"]
-        return pd.to_datetime(dates)
+        dates.loc[:, 'date'] = pd.to_datetime(dates)
+        for col in ["year", "month", "day"]:
+            dates.loc[:, col] = dates[col].astype('Int64')
+        return dates
+
+
+def parse_single_date(date_str: str) -> datetime.datetime:
+    """Parses date value and raise error if format isn't right
+
+    Args:
+        date_str (str): date string in format YYYY-MM-DD
+
+    Raises:
+        BadConfigError: date_str is not a string or format is wrong.
+
+    Returns:
+        parsed datetime
+    """
+    if type(date_str) is not str:
+        raise BadConfigError(
+            [], 'date must be a string matching format "YYYY-MM-DD"',
+        )
+    try:
+        return datetime.datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError as e:
+        raise BadConfigError([], 'date must match format "YYYY-MM-DD"')

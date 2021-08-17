@@ -47,3 +47,18 @@ class TaskTestCase(TestCase):
             ['tate', 2000, 1, 1],
             ['cate', 2000, 1, 1],
         ], columns=['uid', 'year', 'month', 'day'])))
+
+        task = Task(
+            'birth dates should be valid',
+            valid_date={
+                'date_from': {
+                    'year_column': 'year', 'month_column': 'month', 'day_column': 'day'
+                },
+                'min_date': '1900-01-01'
+            }
+        )
+        self.assertTrue(task.run(pd.DataFrame([
+            ['john', 1970, 10, 1],
+            ['tate', 1960, 2, 28],
+            ['cate', 1993, 11, 12],
+        ], columns=['uid', 'year', 'month', 'day'])))

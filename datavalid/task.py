@@ -1,6 +1,8 @@
 import pandas as pd
 
-from .checkers import NoMoreThanOncePer30DaysChecker, UniqueChecker, EmptyChecker, NoConsecutiveDateChecker
+from .checkers import (
+    NoMoreThanOncePer30DaysChecker, UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, ValidDateChecker
+)
 from .filter import Filter
 from .exceptions import BadConfigError
 
@@ -30,6 +32,7 @@ class Task(object):
         empty: dict or None = None,
         no_consecutive_date: dict or None = None,
         no_more_than_once_per_30_days: dict or None = None,
+        valid_date: dict or None = None,
         warn_only: bool = False
     ) -> None:
         """Creates a new instance of Task
@@ -60,6 +63,9 @@ class Task(object):
                 if defined, this task's checker will be a NoMoreThanOncePer30DaysChecker
                 with this argument passed in as keyword arguments to
                 NoMoreThanOncePer30DaysChecker.
+            valid_date (dict):
+                if defined, this task's checker will be a ValidDateChecker with this
+                argument passed in as keyword arguments to ValidDateChecker.
             warn_only (bool):
                 if set to true then failing this validation will only generate a warning
                 rather than failing the whole run.
@@ -108,6 +114,15 @@ class Task(object):
                     ['no_more_than_once_per_30_days']+e.path, e.msg)
             except TypeError as e:
                 raise BadConfigError(['no_more_than_once_per_30_days'], str(e))
+        elif valid_date is not None:
+            try:
+                self._checker = ValidDateChecker(
+                    **valid_date)
+            except BadConfigError as e:
+                raise BadConfigError(
+                    ['valid_date']+e.path, e.msg)
+            except TypeError as e:
+                raise BadConfigError(['valid_date'], str(e))
         else:
             raise BadConfigError(
                 'at least one checker should be specified for this task. '

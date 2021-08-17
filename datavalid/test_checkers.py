@@ -1,9 +1,12 @@
 from unittest import TestCase
 
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from datavalid.checkers import UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, NoMoreThanOncePer30DaysChecker
+from datavalid.checkers import (
+    UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, NoMoreThanOncePer30DaysChecker, ValidDateChecker
+)
 
 
 class UniqueCheckTestCase(TestCase):
@@ -107,3 +110,40 @@ class NoMoreThanOncePer30DaysCheckerTestCase(TestCase):
             ['officer_join', 2000, 1, 3],
             ['promotion', 2000, 1, 4],
         ], index=[2, 1, 0], columns=columns))
+
+
+class ValidDateCheckerTestCase(TestCase):
+    def test_check(self):
+        columns = ['event', 'event_year', 'event_month', 'event_day']
+
+        checker = ValidDateChecker(date_from={
+            'year_column': 'event_year', 'month_column': 'event_month', 'day_column': 'event_day'
+        }, min_date='1900-02-03')
+        self.assertTrue(checker.check(pd.DataFrame([
+            ['officer_join', 2000, 1, 3],
+            ['promotion', 2001, 10, np.NaN],
+            ['officer_left', 2010, np.NaN, np.NaN],
+        ], columns=columns)))
+
+        self.assertFalse(checker.check(pd.DataFrame([
+            ['officer_join', 2050, 3, 2],
+            ['officer_join', 2000, 4, 3]
+        ], columns=columns)))
+        self.assertEqual(checker.err_msg, 'future dates detected')
+        assert_frame_equal(checker.df, pd.DataFrame([
+            ['officer_join', 2050, 3, 2],
+        ], columns=columns))
+
+        self.assertFalse(checker.check(pd.DataFrame([
+            ['officer_join', 1899, 4, 5],
+            ['officer_join', 1900, 1, 2],
+            ['officer_join', 1900, 2, 1],
+            ['officer_join', 2000, 4, 3]
+        ], columns=columns)))
+        self.assertEqual(
+            checker.err_msg, 'dates less than "1900-02-03" detected')
+        assert_frame_equal(checker.df, pd.DataFrame([
+            ['officer_join', 1899, 4, 5],
+            ['officer_join', 1900, 1, 2],
+            ['officer_join', 1900, 2, 1],
+        ], columns=columns))
