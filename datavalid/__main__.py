@@ -3,9 +3,13 @@ import pathlib
 import sys
 
 import yaml
+import pandas as pd
 
 from .config import Config
 from .exceptions import BadConfigError
+
+
+pd.options.mode.chained_assignment = None
 
 parser = argparse.ArgumentParser(
     prog='datavalid', description='validate CSV files')
