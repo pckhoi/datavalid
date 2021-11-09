@@ -4,6 +4,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from datavalid.task import Task
+from datavalid.exceptions import TaskValidationError
 
 
 class TaskTestCase(TestCase):
@@ -21,9 +22,11 @@ class TaskTestCase(TestCase):
                 'column': 'age', 'op': 'greater_equal', 'value': 25
             }
         )
-        self.assertFalse(task.run(df))
-        self.assertEqual(task.err_msg, 'There are 2 such rows')
-        assert_frame_equal(task.df, pd.DataFrame([
+        with self.assertRaises(TaskValidationError) as cm:
+            task.run(df)
+        self.assertEqual(cm.exception.err_msg, 'There are 2 such rows')
+        self.assertEqual(cm.exception.task_name, task.name)
+        assert_frame_equal(cm.exception.rows, pd.DataFrame([
             ['jean', 'smith', 43],
             ['jane', 'smith', 30]
         ], columns=columns))
@@ -33,7 +36,7 @@ class TaskTestCase(TestCase):
             where={'column': 'last', 'op': 'equal', 'value': 'smith'},
             unique='first'
         )
-        self.assertTrue(task.run(df))
+        task.run(df)
 
         task = Task(
             'officer should not have left dates too close together',
@@ -42,11 +45,11 @@ class TaskTestCase(TestCase):
                 'year_column': 'year', 'month_column': 'month', 'day_column': 'day'
             }}
         )
-        self.assertTrue(task.run(pd.DataFrame([
+        task.run(pd.DataFrame([
             ['john', 2000, 1, 1],
             ['tate', 2000, 1, 1],
             ['cate', 2000, 1, 1],
-        ], columns=['uid', 'year', 'month', 'day'])))
+        ], columns=['uid', 'year', 'month', 'day']))
 
         task = Task(
             'birth dates should be valid',
@@ -57,8 +60,8 @@ class TaskTestCase(TestCase):
                 'min_date': '1900-01-01'
             }
         )
-        self.assertTrue(task.run(pd.DataFrame([
+        task.run(pd.DataFrame([
             ['john', 1970, 10, 1],
             ['tate', 1960, 2, 28],
             ['cate', 1993, 11, 12],
-        ], columns=['uid', 'year', 'month', 'day'])))
+        ], columns=['uid', 'year', 'month', 'day']))

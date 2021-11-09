@@ -1,119 +1,146 @@
-from typing import Type
+from typing import Iterator
 
 import pandas as pd
 
-from .exceptions import BadConfigError
-from .field_checkers import (
-    BaseFieldChecker, MatchRegexFieldChecker, TitleCaseFieldChecker, UniqueFieldChecker, NoNAFieldChecker, OptionsFieldChecker,
-    IntegerFieldChecker, FloatFieldChecker, RangeFieldChecker
-)
+from .exceptions import BadConfigError, ColumnMissingError, ColumnValidationError, ColumnError
+from .column_schema import ColumnSchema
+from .task import Task
 
 
-checker_dict = {
-    'unique': UniqueFieldChecker,
-    'no_na': NoNAFieldChecker,
-    'options': OptionsFieldChecker,
-    'integer': IntegerFieldChecker,
-    'float': FloatFieldChecker,
-    'range': RangeFieldChecker,
-    'title_case': TitleCaseFieldChecker,
-    'match_regex': MatchRegexFieldChecker
-}
-
-
-class FieldSchema(object):
-    """Describes a column and validates it
-
-    Attributes:
-        desc (str):
-            description of this column
-        attrs (dict):
-            other attributes that was passed in during creation
-        failed_check (str):
-            available if valid() is False, name of the attribute
-            that this column failed
-        sr (pd.Series):
-            available if valid() is False, the offending values
-            as a series
+class Schema(object):
+    """Describes a table and how to validate it.
     """
-    _desc: str or None
-    _name: str
-    _checkers: dict[str, Type[BaseFieldChecker]]
-    failed_check: str
-    sr: pd.Series
+    columns: dict[str, ColumnSchema]
 
-    def __init__(self, name: str, description: str or None = None, **kwargs) -> None:
-        """Creates a new instance of FieldSchema
+    def __init__(self, name: str, columns: list[dict] or None = None, validation_tasks: list[dict] or None = None):
+        """Creates a new instance of Schema
 
         Args:
             name (str):
-                name of this column
-            description (str):
-                description of this column
-            unique (bool):
-                whether this column can only contain unique values
-            no_na (bool):
-                whether this column can only contain non-NA values
-            options (list of str):
-                if given then this column can only contain values
-                within this list
-            integer (bool):
-                whether this column can only contain integer values
-            float (bool):
-                whether this column can only contain float (and
-                integer) values
-            range (list of 2 numbers):
-                ensure values in this column must be numeric and
-                must be between the 2 specified values
+                the name of the schema
+            columns (list of dict):
+                schema for each column
+            validation_tasks (list):
+                additional validation tasks to run on this file
 
         Returns:
             no value
         """
-        self._name = name
-        self._desc = None if description is None else description.strip()
-        self._checkers = dict()
-        for k, v in kwargs.items():
-            if k not in checker_dict:
-                raise BadConfigError([], 'unknown option %s' % k)
-            try:
-                if v == True:
-                    self._checkers[k] = checker_dict[k]()
-                elif type(v) is list:
-                    self._checkers[k] = checker_dict[k](*v)
-                elif type(v) is str:
-                    self._checkers[k] = checker_dict[k](v)
-                else:
-                    raise BadConfigError([k], 'invalid option')
-            except BadConfigError as e:
-                raise BadConfigError([k]+e.path, e.msg)
+        self.name = name
+        self._column_names = list()
+        self.columns = dict()
+        self.tasks = []
+        if columns is not None:
+            if type(columns) != list:
+                raise BadConfigError(
+                    ['columns'],
+                    'should be a list of columns and their description'
+                )
+            for idx, obj in enumerate(columns):
+                if type(obj) != dict:
+                    raise BadConfigError(
+                        ['columns', idx],
+                        'column schema must be a dictionary'
+                    )
+                if 'name' not in obj:
+                    raise BadConfigError(
+                        ['columns', idx, 'name'],
+                        'each column must have field "name"'
+                    )
+                self._column_names.append(obj['name'])
+                try:
+                    self.columns[obj['name']] = ColumnSchema(**obj)
+                except BadConfigError as e:
+                    raise BadConfigError(
+                        ['columns', idx]+e.path, e.msg
+                    )
+                except TypeError as e:
+                    raise BadConfigError(
+                        ['columns', idx], str(e)
+                    )
 
-    def valid(self, sr: pd.Series) -> bool:
-        """Checks whether this column's values are all valid
+        if validation_tasks is not None:
+            if type(validation_tasks) != list:
+                raise BadConfigError(
+                    ['validation_tasks'],
+                    'should be a list of validation tasks')
+            for i, task in enumerate(validation_tasks):
+                try:
+                    self.tasks.append(Task(**task))
+                except BadConfigError as e:
+                    raise BadConfigError(
+                        ['validation_tasks', i]+e.path, e.msg
+                    )
+                except TypeError as e:
+                    raise BadConfigError(
+                        ['validation_tasks', i], str(e)
+                    )
+
+    def column_errors(self, df: pd.DataFrame) -> Iterator[ColumnError]:
+        """Validates and returns column errors as a generator.
+
+        If this doesn't yield anything, that means the frame matches the schema.
 
         Args:
-            sr (pd.Series):
-                the series to check
+            df (pd.DataFrame):
+                the frame to validate
 
         Returns:
-            whether the series is valid
+            a generator that yield ColumnError
         """
-        for name, checker in self._checkers.items():
-            res = checker.check(sr)
-            if res is not None:
-                self.sr = res
-                self.failed_check = name
-                return False
-        return True
+        for col, col_schema in self.columns.items():
+            if col not in df.columns:
+                yield ColumnMissingError(col)
+            else:
+                try:
+                    col_schema.validate(df.loc[:, col])
+                except ColumnValidationError as e:
+                    yield e
+
+    def rearrange_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Rearranges columns according to the order in the schema and checks against the column schemas.
+
+        Args:
+            df (pd.DataFrame):
+                the frame to rearrange
+
+        Returns:
+            the rearranged frame
+        """
+        existing_cols = set(df.columns)
+        df = df[[col for col in self._column_names if col in existing_cols]]\
+            .drop_duplicates(ignore_index=True)
+        for col, col_schema in self.columns.items():
+            if col in existing_cols:
+                col_schema.validate(df.loc[:, col])
+        return df
 
     def to_markdown(self) -> str:
-        """Render this field schema as markdown."""
-        return "\n".join(filter(None, [
-            "- **%s**:" % self._name,
-            None if self._desc is None else "  - Description: %s\n" % self._desc,
-            None if len(self._checkers) == 0 else "\n".join(
-                ["  - Attributes:"]+[
-                    "    "+checker.to_markdown().replace("\n", "\n    ")
-                    for checker in self._checkers.values()
+        """Render this schema as Markdown
+
+        Returns:
+            markdown string
+        """
+        return "\n".join([
+            "## Schema %s" % self.name,
+            "",
+        ]+(
+            [] if len(self.columns) == 0 else (
+                [
+                    "### columns",
+                    ""
+                ]+[
+                    field.to_markdown() for field in self.columns.values()
+                ]
+            )
+        )+(
+            [] if len(self._tasks) == 0 else (
+                [
+                    "### Validation tasks",
+                    ""
+                ]+[
+                    task.to_markdown() for task in self._tasks
                 ]+[""]
             )
-        ]))
+        )
+        )

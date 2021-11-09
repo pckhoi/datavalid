@@ -2,29 +2,60 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_series_equal
+from pandas.testing import assert_series_equal, assert_frame_equal
 
-from datavalid.schema import FieldSchema
+from datavalid.exceptions import ColumnMissingError, ColumnValidationError, TaskValidationError
+from datavalid.schema import Schema
 
 
-class FieldSchemaTestCase(TestCase):
-    def test_validate(self):
-        field = FieldSchema(
-            "test_field", unique=True, no_na=True, options=['a', 'b', 'c']
+class SchemaTestCase(TestCase):
+    def test_validate_columns(self):
+        df = pd.DataFrame([
+            ['john', 'doe', 23],
+            ['jean', 'smith', 43],
+            ['jane', 'smith', 30]
+        ], columns=['first', 'last', 'age'])
+
+        schema = Schema('person', columns=[
+            {'name': 'age', 'integer': True},
+            {'name': 'last', 'unique': True},
+            {'name': 'gender', 'options': ['male', 'female']}
+        ])
+
+        errs = list(schema.column_errors(df))
+        self.assertEqual(len(errs), 2)
+        self.assertIsInstance(errs[0], ColumnValidationError)
+        self.assertEqual(errs[0].column, 'last')
+        self.assertEqual(errs[0].failed_check, 'unique')
+        assert_series_equal(errs[0].values, pd.Series(['smith'], name='last'))
+        self.assertIsInstance(errs[1], ColumnMissingError)
+        self.assertEqual(errs[1].column, 'gender')
+
+    def test_rearrange_columns(self):
+        schema = Schema(
+            'person',
+            columns=[
+                {'name': 'first'},
+                {'name': 'last'},
+                {'name': 'gender', 'options': ['male', 'female']},
+                {'name': 'age', 'integer': True},
+            ],
         )
 
-        self.assertTrue(field.valid(pd.Series(['b', 'c', 'a'])))
+        with self.assertRaises(ColumnValidationError) as cm:
+            schema.rearrange_columns(pd.DataFrame([
+                ['john', 'doe', 23],
+                ['jean', 'smith', '43'],
+            ], columns=['first', 'last', 'age']))
+        self.assertEqual(cm.exception.column, 'age')
 
-        self.assertFalse(field.valid(pd.Series(['b', 'a', 'b'])))
-        assert_series_equal(field.sr, pd.Series(['b', 'b'], index=[0, 2]))
-        self.assertEqual(field.failed_check, 'unique')
-
-        self.assertFalse(field.valid(pd.Series(['b', 'a', np.NaN])))
-        assert_series_equal(
-            field.sr, pd.Series([np.NaN], index=[2]), check_dtype=False
+        assert_frame_equal(
+            schema.rearrange_columns(pd.DataFrame([
+                ['jean', 43, 'female'],
+                ['paul', 33, 'male'],
+            ], columns=['first', 'age', 'gender'])),
+            pd.DataFrame([
+                ['jean', 'female', 43],
+                ['paul', 'male', 33],
+            ], columns=['first', 'gender', 'age']),
         )
-        self.assertEqual(field.failed_check, 'no_na')
-
-        self.assertFalse(field.valid(pd.Series(['d', 'a', 'c'])))
-        assert_series_equal(field.sr, pd.Series(['d']))
-        self.assertEqual(field.failed_check, 'options')

@@ -2,10 +2,9 @@ import argparse
 import pathlib
 import sys
 
-import yaml
 import pandas as pd
 
-from .config import Config
+from .config import load_config
 from .exceptions import BadConfigError
 
 
@@ -26,16 +25,11 @@ elif not args.dir.exists() or not args.dir.is_dir():
     sys.exit("%s is not a valid directory" % args.dir)
 else:
     datadir = args.dir
-conf_file = datadir / 'datavalid.yml'
-if not conf_file.exists():
-    sys.exit("%s does not exist" % conf_file)
-with conf_file.open() as f:
-    obj = yaml.load(f.read(), Loader=yaml.Loader)
 try:
-    conf = Config(datadir, **obj)
+    conf = load_config(datadir)
 except BadConfigError as e:
-    print("Error parsing config file %s:\n  %s" %
-          (str(conf_file), str(e).replace('\n', '\n  ')))
+    print("Error parsing config file:\n  %s" %
+          str(e).replace('\n', '\n  '))
     sys.exit(1)
 if args.doc:
     with open(args.doc, 'w') as f:

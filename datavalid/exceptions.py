@@ -1,4 +1,7 @@
 import pandas as pd
+from termcolor import colored
+
+from .utils import indent
 
 
 class BadConfigError(Exception):
@@ -75,3 +78,129 @@ class BadDateError(ValueError):
         super().__init__(msg)
         self.msg = msg
         self.rows = rows
+
+
+class ColumnError(ValueError):
+    """Raised when column error is detected
+
+    Attributes
+        msg (str):
+            the error message
+        column (str):
+            the column name
+    """
+    msg: str
+    column: str
+
+    def __init__(self, column: str, msg: str) -> None:
+        """Creates a new instance of ColumnError
+
+        Args:
+            column (str):
+                the column name
+            msg (str):
+                the error message
+
+        Returns:
+            no value
+        """
+        super().__init__('%s: %s' % (column, msg))
+        self.column = column
+        self.msg = msg
+
+
+class ColumnValidationError(ColumnError):
+    """Raised when a column does not match schema
+
+    Attributes
+        values (pd.Series):
+            unique values in the column that violate schema
+        failed_check (str):
+            name of the failed check
+    """
+    values: pd.Series
+    failed_check: str
+
+    def __init__(self, column: str, failed_check: str, series: pd.Series) -> None:
+        """Creates a new instance of ColumnValidationError
+
+        Args:
+            column (str):
+                the column name
+            failed_check (str):
+                name of the failed check
+            series (pd.Series):
+                values that violate schema
+
+        Returns:
+            no value
+        """
+        values = series.drop_duplicates().reset_index(drop=True)
+        msg = 'failed %s check. %s offending values:\n%s' % (
+            colored(failed_check, "magenta"),
+            colored(len(values), "cyan"),
+            indent(values.to_string(), 2),
+        )
+        super().__init__(column, msg)
+        self.values = values
+        self.failed_check = failed_check
+
+
+class ColumnMissingError(ColumnError):
+    """Raised when a column is present in schema but missing in frame
+    """
+
+    def __init__(self, column: str) -> None:
+        """Creates a new instance of ColumnMissingError
+
+        Args:
+            column (str):
+                the column name
+
+        Returns:
+            no value
+        """
+        super().__init__(column, 'is not present')
+
+
+class TaskValidationError(ValueError):
+    """Raised when a validation task fail
+
+    Attributes
+        task_name (str):
+            name of validation tasks
+        err_msg (str):
+            the error message
+        rows (pd.DataFrame)
+            violating rows
+        warn (bool):
+            whether this error should fail the whole run
+    """
+    task_name: str
+    err_msg: str
+    rows: pd.DataFrame
+    warn: bool
+
+    def __init__(self, task_name: str, err_msg: str, rows: pd.DataFrame, warn: bool = False) -> None:
+        """Creates a new instance of TaskValidationError
+
+        Args:
+            task_name (str):
+                name of validation tasks
+            err_msg (str):
+                the error message
+            rows (pd.DataFrame)
+                violating rows
+            warn (bool):
+                whether this error should fail the whole run
+
+        Returns:
+            no value
+        """
+        super().__init__('task %s: %s\n%s' % (
+            task_name, err_msg, rows.to_string()
+        ))
+        self.task_name = task_name
+        self.err_msg = err_msg
+        self.rows = rows
+        self.warn = warn

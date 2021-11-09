@@ -7,7 +7,6 @@ from pathlib import Path
 from io import StringIO
 
 import pandas as pd
-from pandas.testing import assert_frame_equal
 
 from datavalid.config import Config
 
@@ -32,25 +31,35 @@ class ConfigTestCase(TestCase):
             ], columns=['event', 'event_year', 'event_month', 'event_day']).to_csv(f, index=False)
             fp_2 = Path(f.name)
 
-        conf = Config(fp_1.parent, files={
-            str(fp_1): {
-                'validation_tasks': [
-                    {
-                        'name': 'the smiths should have unique first name',
-                        'where': {'column': 'last', 'op': 'equal', 'value': 'smith'},
-                        'unique': 'first'
-                    }
-                ],
-            },
-            str(fp_2): {
-                'schema': {
-                    'event_year': {
-                        'integer': True,
-                        'range': [2000, 2020]
-                    }
+        conf = Config(
+            fp_1.parent,
+            files={
+                str(fp_1): {
+                    'schema': 'person',
+                },
+                str(fp_2): {
+                    'schema': 'event'
                 }
-            }
-        }, no_spinner=True)
+            },
+            schemas={
+                'person': {
+                    'validation_tasks': [
+                        {
+                            'name': 'the smiths should have unique first name',
+                            'where': {'column': 'last', 'op': 'equal', 'value': 'smith'},
+                            'unique': 'first'
+                        }
+                    ],
+                },
+                'event': {
+                    'columns': [
+                        {'name': 'event_year',
+                         'integer': True,
+                         'range': [2000, 2020]
+                         }
+                    ]
+                }
+            }, no_spinner=True)
 
         buf = StringIO()
         with redirect_stdout(buf):
@@ -58,7 +67,7 @@ class ConfigTestCase(TestCase):
             sys.stdout.flush()
         self.assertEqual(buf.getvalue(), '\n'.join([
             'Validating ' + str(fp_1),
-            '[32m  ✓ the smiths should have unique first name[0m',
+            '  [32m✓ the smiths should have unique first name[0m',
             'Validating ' + str(fp_2),
             '[32m  ✓ All columns match schema[0m',
             'All good!',

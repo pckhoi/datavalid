@@ -4,7 +4,7 @@ from .checkers import (
     NoMoreThanOncePer30DaysChecker, UniqueChecker, EmptyChecker, NoConsecutiveDateChecker, ValidDateChecker
 )
 from .filter import Filter
-from .exceptions import BadConfigError
+from .exceptions import BadConfigError, TaskValidationError
 
 
 class Task(object):
@@ -129,28 +129,30 @@ class Task(object):
                 'Available checkers are "unique", "empty", "no_consecutive_date", "no_more_than_once_per_30_days"'
             )
 
-    def run(self, df: pd.DataFrame) -> bool:
-        """Run validation task and returns whether it succeed or not.
+    def run(self, df: pd.DataFrame) -> None:
+        """Run validation task and raise an error if not succeed.
 
         Args:
             df (pd.DataFrame):
                 the data to validate
 
+        Raises:
+            TaskValidationError: validation task failed
+
         Returns:
-            True or False depending on whether validation succeed
+            no value
         """
         for sub_df in self._filter.filter(df):
-            succeed = self._checker.check(sub_df)
-            if not succeed:
-                return False
-        return True
+            if not self._checker.check(sub_df):
+                raise TaskValidationError(
+                    self.name, self._err_msg, self._df, self.warn_only)
 
     @property
-    def err_msg(self) -> str:
+    def _err_msg(self) -> str:
         return self._checker.err_msg
 
     @property
-    def df(self) -> pd.DataFrame:
+    def _df(self) -> pd.DataFrame:
         return self._checker.df
 
     def to_markdown(self) -> str:
