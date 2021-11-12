@@ -129,7 +129,9 @@ class Config(object):
         ])
 
 
-def load_config(datadir: str) -> Config:
+def load_config(datadir: str or pathlib.Path) -> Config:
+    if type(datadir) is str:
+        datadir = pathlib.Path(datadir)
     conf_file = datadir / 'datavalid.yml'
     if not conf_file.exists():
         raise FileNotFoundError("%s does not exist" % conf_file)
