@@ -92,7 +92,7 @@ class IntegerFieldChecker(BaseFieldChecker):
         else:
             # dtype is probably 'object' with strings in it
             # return the strings
-            return sr[sr.str.match('').notna()]
+            return sr[~sr.astype(str).str.match(r'^\d+$') & sr.notna()]
 
     def to_markdown(self) -> str:
         return "- Integer"
