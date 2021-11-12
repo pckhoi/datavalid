@@ -1,4 +1,6 @@
 import pathlib
+import traceback
+import sys
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -96,6 +98,18 @@ class File(object):
                             line_width=TERM_COLS-4), 4))
                     if not err.warn:
                         return False
+                except Exception:
+                    print(indent(colored("✕ %s" % task.name, "red"), 2))
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    print(indent(
+                        'an error occured during task execution: %s' % ''.join(traceback.format_exception_only(
+                            exc_type, exc_value
+                        )).strip(),
+                        4
+                    ))
+                    for line in traceback.format_tb(exc_tb):
+                        print(indent(line.strip(), 6))
+                    return False
                 else:
                     print(indent(colored("✓ %s" % task.name, "green"), 2))
         return True

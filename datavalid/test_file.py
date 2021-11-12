@@ -81,6 +81,38 @@ class FileTestCase(TestCase):
 
         os.remove(fp)
 
+    def test_task_exception(self):
+        with NamedTemporaryFile(delete=False) as f:
+            pd.DataFrame([
+                ['promotion', 2000, 1],
+                ['officer_join', 2000, 1],
+                ['officer_left', 2010, 9],
+            ], columns=['event', 'event_year', 'event_month']).to_csv(f, index=False)
+            fp = Path(f.name)
+
+        file = File(fp.parent, str(fp), schema=Schema('person', validation_tasks=[
+            {
+                'name': 'no more than one event a month',
+                'no_more_than_once_per_30_days': {
+                        'date_from': {
+                            'year_column': 'event_year', 'month_column': 'event_month', 'day_column': 'event_day'
+                        }
+                }
+            }
+        ]), no_spinner=True)
+
+        buf = StringIO()
+        with redirect_stdout(buf):
+            self.assertFalse(file.valid())
+            sys.stdout.flush()
+        self.assertTrue(buf.getvalue().startswith('\n'.join([
+            'Validating ' + str(fp),
+            '  [31m✕ no more than one event a month[0m',
+            '    an error occured during task execution: KeyError: \'event_day\''
+        ])))
+
+        os.remove(fp)
+
     def test_task_warn(self):
         with NamedTemporaryFile(delete=False) as f:
             pd.DataFrame([
