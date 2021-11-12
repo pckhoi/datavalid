@@ -44,9 +44,9 @@ class IntegerFieldCheckerTestCase(TestCase):
     def test_check(self):
         c = IntegerFieldChecker()
 
-        self.assertIsNone(c.check(pd.Series([1, 2])))
-        self.assertIsNone(c.check(pd.Series([3.0, np.NaN])))
-        self.assertIsNone(c.check(pd.Series(['3', '400', '0'])))
+        self.assertIsNone(c.check(pd.Series([1, 2, 0])))
+        self.assertIsNone(c.check(pd.Series([3.0, 0, np.NaN])))
+        self.assertIsNone(c.check(pd.Series(['3', '400', '0', ''])))
 
         assert_series_equal(
             c.check(pd.Series([2, 3.0, 4.1, np.NaN])),
@@ -71,7 +71,7 @@ class FloatFieldCheckerTestCase(TestCase):
         self.assertIsNone(c.check(pd.Series([1, 2.0, 3.4, np.NaN])))
 
         assert_series_equal(
-            c.check(pd.Series(['a', 2.1, 3])),
+            c.check(pd.Series(['a', 2.1, 3, '4.5', '6', ''])),
             pd.Series(['a'])
         )
 

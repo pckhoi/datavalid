@@ -92,7 +92,7 @@ class IntegerFieldChecker(BaseFieldChecker):
         else:
             # dtype is probably 'object' with strings in it
             # return the strings
-            return sr[~sr.astype(str).str.match(r'^\d+$') & sr.notna()]
+            return sr[~sr.astype(str).str.match(r'^\d+$') & sr.notna() & (sr.astype(str) != '')]
 
     def to_markdown(self) -> str:
         return "- Integer"
@@ -105,7 +105,7 @@ class FloatFieldChecker(BaseFieldChecker):
         if sr.dtype.name in ['int64', 'float64']:
             return pd.Series([])
         else:
-            return sr[sr.str.match('').notna()]
+            return sr[~sr.astype(str).str.match(r'^(\d*\.)?\d+$') & sr.notna() & (sr.astype(str) != '')]
 
     def to_markdown(self) -> str:
         return "- Float"

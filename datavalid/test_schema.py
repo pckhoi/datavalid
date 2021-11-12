@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_series_equal, assert_frame_equal
 
-from datavalid.exceptions import ColumnMissingError, ColumnValidationError, TaskValidationError
+from datavalid.exceptions import ColumnMissingError, ColumnValidationError
 from datavalid.schema import Schema
 
 
