@@ -45,7 +45,7 @@ class SchemaTestCase(TestCase):
         with self.assertRaises(ColumnValidationError) as cm:
             schema.rearrange_columns(pd.DataFrame([
                 ['john', 'doe', 23],
-                ['jean', 'smith', '43'],
+                ['jean', 'smith', 'abc'],
             ], columns=['first', 'last', 'age']))
         self.assertEqual(cm.exception.column, 'age')
 
