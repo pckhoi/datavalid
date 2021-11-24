@@ -51,7 +51,7 @@ class Schema(object):
                 if obj['name'] in seen_column_names:
                     raise BadConfigError(
                         ['columns', idx, 'name'],
-                        'repeating column name'
+                        'repeating column "%s"' % obj['name']
                     )
                 seen_column_names.add(obj['name'])
                 self._column_names.append(obj['name'])

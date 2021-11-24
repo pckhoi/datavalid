@@ -71,5 +71,5 @@ class SchemaTestCase(TestCase):
             )
         self.assertEqual(
             ce.exception.args,
-            (['columns', 1, 'name'], 'repeating column name')
+            (['columns', 1, 'name'], 'repeating column "allegation_uid"')
         )
