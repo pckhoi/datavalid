@@ -30,6 +30,7 @@ class Schema(object):
         self._column_names = list()
         self.columns = dict()
         self.tasks = []
+        seen_column_names = set()
         if columns is not None:
             if type(columns) != list:
                 raise BadConfigError(
@@ -47,6 +48,12 @@ class Schema(object):
                         ['columns', idx, 'name'],
                         'each column must have field "name"'
                     )
+                if obj['name'] in seen_column_names:
+                    raise BadConfigError(
+                        ['columns', idx, 'name'],
+                        'repeating column name'
+                    )
+                seen_column_names.add(obj['name'])
                 self._column_names.append(obj['name'])
                 try:
                     self.columns[obj['name']] = ColumnSchema(**obj)

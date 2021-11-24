@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_series_equal, assert_frame_equal
 
-from datavalid.exceptions import ColumnMissingError, ColumnValidationError
+from datavalid.exceptions import BadConfigError, ColumnMissingError, ColumnValidationError
 from datavalid.schema import Schema
 
 
@@ -58,4 +58,18 @@ class SchemaTestCase(TestCase):
                 ['jean', 'female', 43],
                 ['paul', 'male', 33],
             ], columns=['first', 'gender', 'age']),
+        )
+
+    def test_duplicated_column_names(self):
+        with self.assertRaises(BadConfigError) as ce:
+            Schema(
+                'allegation',
+                columns=[
+                    {'name': 'allegation_uid'},
+                    {'name': 'allegation_uid'},
+                ]
+            )
+        self.assertEqual(
+            ce.exception.args,
+            (['columns', 1, 'name'], 'repeating column name')
         )
